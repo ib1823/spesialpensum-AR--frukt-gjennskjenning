@@ -1,0 +1,506 @@
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1c2c26;
+  background: #f7f7f2;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+
+  --green: #1d563e;
+  --green-dark: #17432f;
+  --muted: #758078;
+  --line: #e7e9e1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.site-header {
+  display: flex;
+  width: min(100% - 48px, 1120px);
+  height: 82px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #1b3429;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  color: #4f8c57;
+}
+
+.brand-mark svg {
+  width: 34px;
+}
+
+.brand-label {
+  margin-left: 1px;
+  padding: 4px 6px;
+  border: 1px solid #e4e9df;
+  border-radius: 5px;
+  color: #78827a;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.header-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #7d887f;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+
+.header-badge span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #86b46c;
+}
+
+.camera-section {
+  width: min(100% - 40px, 650px);
+  margin: 0 auto;
+  padding: 51px 0 60px;
+}
+
+.intro {
+  margin-bottom: 27px;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #829077;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+h1 {
+  margin: 0;
+  color: #1b3026;
+  font-family: inherit;
+  font-size: clamp(27px, 5.5vw, 39px);
+  font-weight: 700;
+  letter-spacing: -1.8px;
+  line-height: 1.17;
+}
+
+.intro__description {
+  max-width: 430px;
+  margin: 12px auto 0;
+  color: #7a827b;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.camera-view {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 470px;
+  place-items: center;
+  border: 1px solid #e5e8df;
+  border-radius: 19px;
+  background:
+    radial-gradient(ellipse at 50% 65%, rgba(240, 239, 222, 0.7), transparent 61%),
+    #eeefe7;
+  box-shadow: 0 10px 36px rgba(36, 54, 39, 0.06);
+}
+
+.camera-view video {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-view:not(.camera-view--active) video {
+  visibility: hidden;
+}
+
+.camera-placeholder {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 20px;
+  text-align: center;
+}
+
+.camera-placeholder__icon {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  place-items: center;
+  border: 1px solid rgba(91, 116, 86, 0.1);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.62);
+  color: #69815f;
+}
+
+.camera-placeholder__icon svg {
+  width: 34px;
+}
+
+.camera-placeholder p {
+  margin: 14px 0 4px;
+  color: #455848;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.camera-placeholder > span:last-child {
+  color: #879087;
+  font-size: 12px;
+}
+
+.camera-live-indicator {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  left: 16px;
+  display: none;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 6px;
+  background: rgba(24, 35, 28, 0.58);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.camera-view--active .camera-live-indicator {
+  display: flex;
+}
+
+.camera-live-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9ada72;
+  box-shadow: 0 0 8px #9ada72;
+}
+
+.camera-panel {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 21px 0 0;
+}
+
+.camera-controls {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+.button {
+  display: inline-flex;
+  min-width: 202px;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 23px;
+  border: 0;
+  border-radius: 11px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  transition:
+    background 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button:focus-visible {
+  outline: 3px solid #9abb82;
+  outline-offset: 3px;
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.button--primary {
+  background: var(--green);
+  box-shadow: 0 5px 12px rgba(29, 86, 62, 0.15);
+  color: white;
+}
+
+.button--primary:hover:not(:disabled) {
+  background: var(--green-dark);
+}
+
+.button--secondary {
+  border: 1px solid #e2e6dd;
+  background: white;
+  color: #3c5245;
+}
+
+.button--secondary:hover {
+  background: #f1f4ed;
+}
+
+.button-camera-icon {
+  position: relative;
+  width: 17px;
+  height: 12px;
+  border: 1.8px solid currentColor;
+  border-radius: 3px;
+}
+
+.button-camera-icon::before {
+  position: absolute;
+  top: -4px;
+  left: 3px;
+  width: 6px;
+  height: 3px;
+  border: 1.5px solid currentColor;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+  content: '';
+}
+
+.button-camera-icon::after {
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 4px;
+  height: 4px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  content: '';
+}
+
+.button-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.camera-controls__hint {
+  margin: 11px 0 0;
+  color: #929991;
+  font-size: 11px;
+}
+
+.camera-error {
+  display: flex;
+  max-width: 450px;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 17px 0 0;
+  color: #994a3d;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.camera-error > span {
+  display: grid;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f6e8e2;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.privacy-note {
+  display: flex;
+  max-width: 430px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 28px auto 0;
+  color: #8b938a;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.privacy-note__icon {
+  display: flex;
+  width: 24px;
+  flex: 0 0 24px;
+  color: #829b73;
+}
+
+.privacy-note__icon svg {
+  width: 21px;
+}
+
+.privacy-note strong {
+  color: #667567;
+  font-weight: 600;
+}
+
+.site-footer {
+  display: flex;
+  width: min(100% - 48px, 1120px);
+  min-height: 63px;
+  align-items: center;
+  justify-content: space-between;
+  margin: auto auto 0;
+  border-top: 1px solid var(--line);
+  color: #9aa198;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+
+@media (min-width: 800px) {
+  .camera-section {
+    padding-top: 61px;
+  }
+}
+
+@media (max-width: 520px) {
+  .site-header {
+    width: calc(100% - 36px);
+    height: 68px;
+  }
+
+  .brand {
+    gap: 7px;
+    font-size: 18px;
+  }
+
+  .brand-mark {
+    width: 31px;
+    height: 31px;
+  }
+
+  .brand-mark svg {
+    width: 30px;
+  }
+
+  .camera-section {
+    width: calc(100% - 36px);
+    padding-top: 39px;
+  }
+
+  .intro {
+    margin-bottom: 22px;
+  }
+
+  .eyebrow {
+    font-size: 9px;
+  }
+
+  .intro__description {
+    max-width: 335px;
+    font-size: 13px;
+  }
+
+  .camera-view {
+    aspect-ratio: 0.94;
+    max-height: 62vh;
+    border-radius: 15px;
+  }
+
+  .camera-placeholder__icon {
+    width: 58px;
+    height: 58px;
+  }
+
+  .camera-panel {
+    padding-top: 18px;
+  }
+
+  .button {
+    min-height: 50px;
+  }
+
+  .privacy-note {
+    margin-top: 24px;
+  }
+
+  .site-footer {
+    width: calc(100% - 36px);
+    min-height: 55px;
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
