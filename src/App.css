@@ -234,6 +234,121 @@ h1 {
   box-shadow: 0 0 8px #9ada72;
 }
 
+.recognition-target {
+  position: absolute;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: 12px;
+  transition:
+    left 260ms ease-out,
+    top 260ms ease-out,
+    width 260ms ease-out,
+    height 260ms ease-out;
+}
+
+.recognition-target--guide {
+  top: 50%;
+  left: 50%;
+  width: min(62%, 300px);
+  height: 64%;
+  transform: translate(-50%, -50%);
+}
+
+.recognition-target--detected {
+  border: 1px solid rgba(184, 240, 151, 0.62);
+  background: rgba(111, 185, 89, 0.06);
+  box-shadow:
+    0 0 18px rgba(153, 230, 119, 0.2),
+    inset 0 0 18px rgba(153, 230, 119, 0.08);
+}
+
+.recognition-target--confirmed {
+  border-color: rgba(184, 240, 151, 0.9);
+}
+
+.recognition-target__corner {
+  position: absolute;
+  z-index: 1;
+  width: 19px;
+  height: 19px;
+  border-color: #d4ffad;
+  border-style: solid;
+  filter: drop-shadow(0 0 4px rgba(181, 255, 135, 0.75));
+}
+
+.recognition-target__corner--tl {
+  top: 0;
+  left: 0;
+  border-width: 3px 0 0 3px;
+  border-top-left-radius: 10px;
+}
+
+.recognition-target__corner--tr {
+  top: 0;
+  right: 0;
+  border-width: 3px 3px 0 0;
+  border-top-right-radius: 10px;
+}
+
+.recognition-target__corner--bl {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 3px 3px;
+  border-bottom-left-radius: 10px;
+}
+
+.recognition-target__corner--br {
+  right: 0;
+  bottom: 0;
+  border-width: 0 3px 3px 0;
+  border-bottom-right-radius: 10px;
+}
+
+.recognition-target--scanning .recognition-target__corner {
+  animation: recognition-corner-pulse 1.4s ease-in-out infinite alternate;
+}
+
+.recognition-target__scanline {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  left: 8px;
+  height: 2px;
+  animation: recognition-scan 1.7s ease-in-out infinite alternate;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 255, 161, 0.95) 20%,
+    #edffd8 50%,
+    rgba(201, 255, 161, 0.95) 80%,
+    transparent
+  );
+  box-shadow:
+    0 0 8px rgba(195, 255, 150, 0.9),
+    0 0 20px rgba(195, 255, 150, 0.55);
+}
+
+@keyframes recognition-scan {
+  from {
+    top: 3%;
+  }
+
+  to {
+    top: 97%;
+  }
+}
+
+@keyframes recognition-corner-pulse {
+  from {
+    opacity: 0.58;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 .recognition-badge {
   position: absolute;
   z-index: 2;

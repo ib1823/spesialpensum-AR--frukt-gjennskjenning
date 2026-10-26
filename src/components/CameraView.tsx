@@ -9,6 +9,7 @@ type CameraViewProps = {
   videoRef: RefObject<HTMLVideoElement | null>
   isRunning: boolean
   recognition: {
+    candidate: RecognitionResult | null
     error: string | null
     result: RecognitionResult | null
     status: RecognitionStatus
@@ -19,6 +20,12 @@ type OverlayPosition = {
   left: number
   top: number
   placement: 'above' | 'below'
+  bounds: {
+    left: number
+    top: number
+    width: number
+    height: number
+  }
 }
 
 function getOverlayPosition(
@@ -46,21 +53,35 @@ function getOverlayPosition(
     transform !== 'none' && new DOMMatrixReadOnly(transform).a < 0
   const xMin = mirrored ? 1 - box.xMax : box.xMin
   const xMax = mirrored ? 1 - box.xMin : box.xMax
-  const centerX = (xMin + xMax) / 2
-  const labelY = box.yMin > 0.22 ? box.yMin : box.yMax
-  const screenX = videoRect.left + centerX * renderedWidth - cropX
-  const screenY = videoRect.top + labelY * renderedHeight - cropY
+  const screenLeft = videoRect.left + xMin * renderedWidth - cropX
+  const screenRight = videoRect.left + xMax * renderedWidth - cropX
+  const screenTop = videoRect.top + box.yMin * renderedHeight - cropY
+  const screenBottom = videoRect.top + box.yMax * renderedHeight - cropY
+  const placeAbove = box.yMin > 0.28
+  const labelY = placeAbove ? screenTop : screenBottom
 
   return {
     left: Math.min(
       94,
-      Math.max(6, ((screenX - containerRect.left) / containerRect.width) * 100),
+      Math.max(
+        6,
+        (((screenLeft + screenRight) / 2 - containerRect.left) /
+          containerRect.width) *
+          100,
+      ),
     ),
     top: Math.min(
       94,
-      Math.max(6, ((screenY - containerRect.top) / containerRect.height) * 100),
+      Math.max(6, ((labelY - containerRect.top) / containerRect.height) * 100),
     ),
-    placement: box.yMin > 0.22 ? 'above' : 'below',
+    placement: placeAbove ? 'above' : 'below',
+    bounds: {
+      left:
+        ((screenLeft - containerRect.left) / containerRect.width) * 100,
+      top: ((screenTop - containerRect.top) / containerRect.height) * 100,
+      width: ((screenRight - screenLeft) / containerRect.width) * 100,
+      height: ((screenBottom - screenTop) / containerRect.height) * 100,
+    },
   }
 }
 
@@ -72,6 +93,10 @@ export function CameraView({
   const containerRef = useRef<HTMLDivElement>(null)
   const [overlayPosition, setOverlayPosition] =
     useState<OverlayPosition | null>(null)
+  const evaluating =
+    !recognition.result ||
+    (Boolean(recognition.candidate) &&
+      recognition.candidate?.label !== recognition.result.label)
 
   useEffect(() => {
     const container = containerRef.current
@@ -83,7 +108,11 @@ export function CameraView({
 
     const updatePosition = () => {
       setOverlayPosition(
-        getOverlayPosition(container, video, recognition.result),
+        getOverlayPosition(
+          container,
+          video,
+          evaluating ? recognition.candidate : recognition.result,
+        ),
       )
     }
 
@@ -98,7 +127,13 @@ export function CameraView({
       video.removeEventListener('loadedmetadata', updatePosition)
       window.removeEventListener('resize', updatePosition)
     }
-  }, [isRunning, recognition.result, videoRef])
+  }, [
+    evaluating,
+    isRunning,
+    recognition.candidate,
+    recognition.result,
+    videoRef,
+  ])
 
   return (
     <div
@@ -141,12 +176,38 @@ export function CameraView({
         LIVE
       </span>
       {isRunning && (
+        <>
+          {recognition.status !== 'error' && (
+            <div
+              className={`recognition-target${overlayPosition?.bounds ? ' recognition-target--detected' : ' recognition-target--guide'}${evaluating ? ' recognition-target--scanning' : ' recognition-target--confirmed'}`}
+              aria-hidden="true"
+              style={
+                overlayPosition?.bounds
+                  ? {
+                      left: `${overlayPosition.bounds.left}%`,
+                      top: `${overlayPosition.bounds.top}%`,
+                      width: `${overlayPosition.bounds.width}%`,
+                      height: `${overlayPosition.bounds.height}%`,
+                    }
+                  : undefined
+              }
+            >
+              <span className="recognition-target__corner recognition-target__corner--tl" />
+              <span className="recognition-target__corner recognition-target__corner--tr" />
+              <span className="recognition-target__corner recognition-target__corner--bl" />
+              <span className="recognition-target__corner recognition-target__corner--br" />
+              {evaluating && <span className="recognition-target__scanline" />}
+            </div>
+          )}
         <RecognitionBadge
           error={recognition.error}
           result={recognition.result}
           status={recognition.status}
+          evaluating={evaluating}
+          candidate={recognition.candidate}
           position={overlayPosition}
         />
+        </>
       )}
     </div>
   )

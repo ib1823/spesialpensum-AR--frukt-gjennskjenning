@@ -39,7 +39,7 @@ The object detector uses the COCO classes `banana` (class ID 52) and `apple` (cl
 
 The ONNX Model Zoo card documents a variable-size NHWC RGB `uint8` input and four outputs: boxes, class IDs, confidence scores, and detection count. The app scales each frame so its longest side is at most 320 pixels and preserves its aspect ratio. ONNX Runtime Web documents WASM support for iOS Safari; the app uses its single-threaded WASM backend and local model file at `public/models/ssd-mobilenet-v1-12-int8.onnx`.
 
-The model's bounding box positions the floating label near the detected item. The mapping accounts for the preview's `object-fit: cover` crop and horizontally mirrored video. The label is a visually 3D-styled HTML overlay; it is not spatially anchored AR and does not track depth or real-world pose.
+An animated scan frame follows the model's bounding box while a result is being stabilized, and a floating label reports **Vurderer varen...** before changing to the confirmed label. The mapping accounts for the preview's `object-fit: cover` crop and horizontally mirrored video. Before a detection is available, a centered viewfinder acts as a guide rather than claiming to track an object. The label and scan frame are HTML overlays; they are not spatially anchored AR and do not track depth or real-world pose.
 
 Recognition results use canonical food labels and can provide a future nutrition lookup query in `src/types/recognition.ts`. Nutrition API integration is not implemented. When added, it should match the detected food against Matvaretabellen's actual food records and display verified nutrient values per 100 g; image recognition alone does not measure portion weight.
 

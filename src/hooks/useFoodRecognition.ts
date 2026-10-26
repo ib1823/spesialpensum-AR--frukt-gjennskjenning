@@ -23,12 +23,14 @@ export function useFoodRecognition(
   enabled: boolean,
 ) {
   const [result, setResult] = useState<RecognitionResult | null>(null)
+  const [candidate, setCandidate] = useState<RecognitionResult | null>(null)
   const [status, setStatus] = useState<RecognitionStatus>('idle')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!enabled) {
       setResult(null)
+      setCandidate(null)
       setError(null)
       setStatus('idle')
       return
@@ -39,6 +41,7 @@ export function useFoodRecognition(
     let candidateCount = 0
 
     setResult(null)
+    setCandidate(null)
     setError(null)
     setStatus('loading')
 
@@ -71,6 +74,35 @@ export function useFoodRecognition(
               candidateLabel = prediction.label
               candidateCount = 1
             }
+
+            setCandidate((previous) => {
+              if (
+                previous?.label !== prediction.label ||
+                !previous.box ||
+                !prediction.box
+              ) {
+                return prediction
+              }
+
+              const smoothing = 0.35
+              return {
+                ...prediction,
+                box: {
+                  xMin:
+                    previous.box.xMin * (1 - smoothing) +
+                    prediction.box.xMin * smoothing,
+                  yMin:
+                    previous.box.yMin * (1 - smoothing) +
+                    prediction.box.yMin * smoothing,
+                  xMax:
+                    previous.box.xMax * (1 - smoothing) +
+                    prediction.box.xMax * smoothing,
+                  yMax:
+                    previous.box.yMax * (1 - smoothing) +
+                    prediction.box.yMax * smoothing,
+                },
+              }
+            })
 
             if (candidateCount >= REQUIRED_STABLE_PREDICTIONS) {
               setResult((previous) => {
@@ -132,5 +164,5 @@ export function useFoodRecognition(
     }
   }, [enabled, videoRef])
 
-  return { error, result, status }
+  return { candidate, error, result, status }
 }
