@@ -1,6 +1,6 @@
 # MatHjelp WebAR
 
-MatHjelp WebAR is a mobile-first React, TypeScript, and Vite application. It provides a live camera preview with local, on-device image classification while the camera is running.
+MatHjelp WebAR is a mobile-first React, TypeScript, and Vite application. It provides a live camera preview with local, on-device food detection while the camera is running.
 
 ## Requirements
 
@@ -35,11 +35,13 @@ The camera requests the environment-facing lens when available and allows the br
 
 The app uses the quantized SSD-MobileNetV1 model from the [ONNX Model Zoo](https://github.com/onnx/models/tree/4c46cd00fbdb7cd30b6c1c17ab54f2e1f4f7b177/validated/vision/object_detection_segmentation/ssd-mobilenetv1), pinned to repository commit `4c46cd00fbdb7cd30b6c1c17ab54f2e1f4f7b177`. The model README declares the model MIT-licensed. Its SHA-256 is `2b79e6a7fb1ec6a33f332b9b10d82d9de4b7b49dcd26b5946921bb356895c954`.
 
-Unlike the ImageNet classifier, this object detector uses the COCO classes `banana` (class ID 52) and `apple` (class ID 53), so it can identify common red and green apples. It can return multiple detections; Phase 2 displays only the highest-confidence apple or banana in a fixed-position label. Detections below the configurable confidence threshold are shown as **Ukjent matvare**. Two consecutive predictions are required to stabilize the display. The displayed score is the model's detection score, not a calibrated probability or a guarantee of correctness.
+The object detector uses the COCO classes `banana` (class ID 52) and `apple` (class ID 53), so it can identify common red and green apples. It can return multiple detections; the app displays only the highest-confidence apple or banana. Detections below the configurable confidence threshold are shown as **Ukjent matvare**. Two consecutive predictions are required to stabilize the text, and bounding-box coordinates are smoothed between frames. The displayed score is the model's detection score, not a calibrated probability or a guarantee of correctness.
 
 The ONNX Model Zoo card documents a variable-size NHWC RGB `uint8` input and four outputs: boxes, class IDs, confidence scores, and detection count. The app scales each frame so its longest side is at most 320 pixels and preserves its aspect ratio. ONNX Runtime Web documents WASM support for iOS Safari; the app uses its single-threaded WASM backend and local model file at `public/models/ssd-mobilenet-v1-12-int8.onnx`.
 
-The model returns box coordinates, but Phase 2 does not display boxes or moving labels. The recognition service is separate from camera management and can later expose its detection coordinates to an AR overlay while continuing to use the same camera video reference.
+The model's bounding box positions the floating label near the detected item. The mapping accounts for the preview's `object-fit: cover` crop and horizontally mirrored video. The label is a visually 3D-styled HTML overlay; it is not spatially anchored AR and does not track depth or real-world pose.
+
+Recognition results use canonical food labels and can provide a future nutrition lookup query in `src/types/recognition.ts`. Nutrition API integration is not implemented. When added, it should match the detected food against Matvaretabellen's actual food records and display verified nutrient values per 100 g; image recognition alone does not measure portion weight.
 
 To change the confidence threshold, edit `MIN_RECOGNITION_CONFIDENCE` in `src/services/recognitionService.ts`. Recognition runs about once per second after the model loads.
 

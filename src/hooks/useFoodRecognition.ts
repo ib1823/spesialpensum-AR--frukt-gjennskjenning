@@ -73,7 +73,34 @@ export function useFoodRecognition(
             }
 
             if (candidateCount >= REQUIRED_STABLE_PREDICTIONS) {
-              setResult(prediction)
+              setResult((previous) => {
+                if (
+                  previous?.label !== prediction.label ||
+                  !previous.box ||
+                  !prediction.box
+                ) {
+                  return prediction
+                }
+
+                const smoothing = 0.35
+                return {
+                  ...prediction,
+                  box: {
+                    xMin:
+                      previous.box.xMin * (1 - smoothing) +
+                      prediction.box.xMin * smoothing,
+                    yMin:
+                      previous.box.yMin * (1 - smoothing) +
+                      prediction.box.yMin * smoothing,
+                    xMax:
+                      previous.box.xMax * (1 - smoothing) +
+                      prediction.box.xMax * smoothing,
+                    yMax:
+                      previous.box.yMax * (1 - smoothing) +
+                      prediction.box.yMax * smoothing,
+                  },
+                }
+              })
             }
           }
 

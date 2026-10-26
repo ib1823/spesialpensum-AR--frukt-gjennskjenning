@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type {
   RecognitionResult,
   RecognitionStatus,
@@ -5,18 +6,24 @@ import type {
 
 type RecognitionBadgeProps = {
   error: string | null
+  position: {
+    left: number
+    top: number
+    placement: 'above' | 'below'
+  } | null
   result: RecognitionResult | null
   status: RecognitionStatus
 }
 
 const LABELS = {
-  banana: 'Banan',
-  apple: 'Eple',
+  banana: 'Dette er en banan',
+  apple: 'Dette er et eple',
   unknown: 'Ukjent matvare',
 } as const
 
 export function RecognitionBadge({
   error,
+  position,
   result,
   status,
 }: RecognitionBadgeProps) {
@@ -27,7 +34,9 @@ export function RecognitionBadge({
   if (status === 'loading') {
     return (
       <div className="recognition-badge" role="status">
-        Laster AI-modell...
+        <span className="recognition-float" key="loading">
+          Laster AI-modell...
+        </span>
       </div>
     )
   }
@@ -35,7 +44,9 @@ export function RecognitionBadge({
   if (status === 'error') {
     return (
       <div className="recognition-badge recognition-badge--error" role="status">
-        AI utilgjengelig{error ? ` · ${error}` : ''}
+        <span className="recognition-float" key="error">
+          AI utilgjengelig{error ? ` · ${error}` : ''}
+        </span>
       </div>
     )
   }
@@ -43,19 +54,36 @@ export function RecognitionBadge({
   if (!result) {
     return (
       <div className="recognition-badge" role="status">
-        Ser etter matvarer...
+        <span className="recognition-float" key="searching">
+          Ser etter matvarer...
+        </span>
       </div>
     )
   }
 
   return (
-    <div className="recognition-badge" role="status" aria-live="polite">
-      <span>{LABELS[result.label]}</span>
-      {result.confidence !== null && (
-        <span className="recognition-badge__confidence">
-          {(result.confidence * 100).toFixed(0)}% sikkerhet
-        </span>
-      )}
+    <div
+      className={`recognition-badge${position ? ` recognition-badge--${position.placement}` : ''}`}
+      role="status"
+      aria-live="polite"
+      style={
+        position
+          ? ({
+              left: `${position.left}%`,
+              top: `${position.top}%`,
+              bottom: 'auto',
+            } as CSSProperties)
+          : undefined
+      }
+    >
+      <div className="recognition-float" key={result.label}>
+        <span>{LABELS[result.label]}</span>
+        {result.confidence !== null && (
+          <span className="recognition-badge__confidence">
+            {(result.confidence * 100).toFixed(0)}% sikkerhet
+          </span>
+        )}
+      </div>
     </div>
   )
 }

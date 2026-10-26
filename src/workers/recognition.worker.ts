@@ -1,6 +1,6 @@
 import * as ort from 'onnxruntime-web/wasm'
 import wasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url'
-import type { RecognitionResult } from '../types/recognition'
+import type { RecognitionBox, RecognitionResult } from '../types/recognition'
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/ssd-mobilenet-v1-12-int8.onnx`
 const MIN_RECOGNITION_CONFIDENCE = 0.45
@@ -79,10 +79,18 @@ async function recognize(
   const classes = outputs.detection_classes.data
   const scores = outputs.detection_scores.data
   let bestResult: RecognitionResult | null = null
+  let bestDetection: RecognitionResult | null = null
 
   for (let index = 0; index < count; index += 1) {
     const classId = Math.round(Number(classes[index]))
     const confidence = Number(scores[index])
+    const offset = index * 4
+    const box: RecognitionBox = {
+      yMin: Number(outputs.detection_boxes.data[offset]),
+      xMin: Number(outputs.detection_boxes.data[offset + 1]),
+      yMax: Number(outputs.detection_boxes.data[offset + 2]),
+      xMax: Number(outputs.detection_boxes.data[offset + 3]),
+    }
     const label =
       classId === BANANA_CLASS_ID
         ? 'banana'
@@ -91,15 +99,26 @@ async function recognize(
           : null
 
     if (
+      confidence >= MIN_RECOGNITION_CONFIDENCE &&
+      (!bestDetection || confidence > (bestDetection.confidence ?? 0))
+    ) {
+      bestDetection = { label: 'unknown', confidence, box }
+    }
+
+    if (
       label &&
       confidence >= MIN_RECOGNITION_CONFIDENCE &&
       (!bestResult || confidence > (bestResult.confidence ?? 0))
     ) {
-      bestResult = { label, confidence }
+      bestResult = { label, confidence, box }
     }
   }
 
-  return bestResult ?? { label: 'unknown', confidence: null }
+  return bestResult ?? bestDetection ?? {
+    label: 'unknown',
+    confidence: null,
+    box: null,
+  }
 }
 
 async function handleRequest(request: WorkerRequest): Promise<WorkerResponse> {
