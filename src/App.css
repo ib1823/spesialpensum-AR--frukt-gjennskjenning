@@ -234,6 +234,41 @@ h1 {
   box-shadow: 0 0 8px #9ada72;
 }
 
+.recognition-badge {
+  position: absolute;
+  z-index: 2;
+  bottom: 16px;
+  left: 50%;
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 9px 13px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 9px;
+  background: rgba(24, 35, 28, 0.78);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+}
+
+.recognition-badge--error {
+  max-width: calc(100% - 24px);
+  color: #ffe5d8;
+  font-size: 11px;
+  white-space: normal;
+}
+
+.recognition-badge__confidence {
+  color: #d3e8c8;
+  font-size: 10px;
+  font-weight: 500;
+}
+
 .camera-panel {
   display: flex;
   align-items: center;

@@ -1,6 +1,6 @@
 # MatHjelp WebAR
 
-MatHjelp WebAR is a mobile-first React, TypeScript, and Vite application. Phase 1 provides a live camera preview; it does not run AI recognition or process frames continuously.
+MatHjelp WebAR is a mobile-first React, TypeScript, and Vite application. It provides a live camera preview with local, on-device image classification while the camera is running.
 
 ## Requirements
 
@@ -27,9 +27,25 @@ The production site is generated in `dist/`.
 
 ## Camera architecture
 
-`useCamera` owns the MediaDevices stream lifecycle and returns a `videoRef` pointing to the same `<video>` element used for the preview. Future frame capture and inference code should consume that element rather than opening another camera stream. Frame capture, preprocessing, model inference, detection results, and AR overlays are intentionally not implemented yet.
+`useCamera` owns the MediaDevices stream lifecycle and returns a `videoRef` pointing to the same `<video>` element used for the preview. `useFoodRecognition` consumes that video element without opening another camera stream. It loads ONNX Runtime Web on WASM, preprocesses one frame at a time, and releases the inference session when the camera stops. AI errors are displayed separately and do not stop the camera.
 
-The camera requests the environment-facing lens when available and allows the browser to choose a camera if that preference is unavailable. Camera access begins only after the user presses **Start kamera**. Stopping the camera stops all tracks, and the hook also cleans up on unmount.
+The camera requests the environment-facing lens when available and allows the browser to choose a camera if that preference is unavailable. Camera access begins only after the user presses **Start kamera**. Stopping the camera stops all tracks and recognition.
+
+## Recognition model
+
+The app uses the quantized SSD-MobileNetV1 model from the [ONNX Model Zoo](https://github.com/onnx/models/tree/4c46cd00fbdb7cd30b6c1c17ab54f2e1f4f7b177/validated/vision/object_detection_segmentation/ssd-mobilenetv1), pinned to repository commit `4c46cd00fbdb7cd30b6c1c17ab54f2e1f4f7b177`. The model README declares the model MIT-licensed. Its SHA-256 is `2b79e6a7fb1ec6a33f332b9b10d82d9de4b7b49dcd26b5946921bb356895c954`.
+
+Unlike the ImageNet classifier, this object detector uses the COCO classes `banana` (class ID 52) and `apple` (class ID 53), so it can identify common red and green apples. It can return multiple detections; Phase 2 displays only the highest-confidence apple or banana in a fixed-position label. Detections below the configurable confidence threshold are shown as **Ukjent matvare**. Two consecutive predictions are required to stabilize the display. The displayed score is the model's detection score, not a calibrated probability or a guarantee of correctness.
+
+The ONNX Model Zoo card documents a variable-size NHWC RGB `uint8` input and four outputs: boxes, class IDs, confidence scores, and detection count. The app scales each frame so its longest side is at most 320 pixels and preserves its aspect ratio. ONNX Runtime Web documents WASM support for iOS Safari; the app uses its single-threaded WASM backend and local model file at `public/models/ssd-mobilenet-v1-12-int8.onnx`.
+
+The model returns box coordinates, but Phase 2 does not display boxes or moving labels. The recognition service is separate from camera management and can later expose its detection coordinates to an AR overlay while continuing to use the same camera video reference.
+
+To change the confidence threshold, edit `MIN_RECOGNITION_CONFIDENCE` in `src/services/recognitionService.ts`. Recognition runs about once per second after the model loads.
+
+## Test on iPhone
+
+The production build can be validated with `npm run build`. To test actual predictions, deploy the app over HTTPS, open it in Safari on a physical iPhone, start the camera, and point it at one banana or apple at a time with the item centered and well lit. Verify that the label changes to **Ukjent matvare** for unrelated objects. Browser and desktop builds do not substitute for a physical iPhone Safari test.
 
 ## Deploy to Netlify
 
@@ -39,4 +55,4 @@ The camera requests the environment-facing lens when available and allows the br
 4. Deploy, then open the HTTPS URL from an iPhone in Safari.
 5. Press **Start kamera** and allow camera access when Safari prompts. If permission was previously denied, enable camera access for the site in iOS Settings/Safari and reload.
 
-Camera access on iPhone requires HTTPS (Netlify provides HTTPS). Test the deployed site on the physical iPhone; a desktop preview or simulator does not verify iPhone camera permissions or rear-camera selection.
+Camera access on iPhone requires HTTPS (Netlify provides HTTPS). Test the deployed site on the physical iPhone; a desktop preview or simulator does not verify iPhone camera permissions, rear-camera selection, or model performance on that device.

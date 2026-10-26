@@ -1,9 +1,11 @@
 import { CameraControls } from './components/CameraControls'
 import { CameraView } from './components/CameraView'
+import { useFoodRecognition } from './hooks/useFoodRecognition'
 import { useCamera } from './hooks/useCamera'
 
 function App() {
   const camera = useCamera()
+  const recognition = useFoodRecognition(camera.videoRef, camera.isRunning)
 
   return (
     <main className="app-shell">
@@ -45,7 +47,11 @@ function App() {
           </p>
         </div>
 
-        <CameraView videoRef={camera.videoRef} isRunning={camera.isRunning} />
+        <CameraView
+          videoRef={camera.videoRef}
+          isRunning={camera.isRunning}
+          recognition={recognition}
+        />
 
         <div className="camera-panel">
           <CameraControls

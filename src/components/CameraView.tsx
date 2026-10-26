@@ -1,11 +1,25 @@
 import type { RefObject } from 'react'
+import { RecognitionBadge } from './RecognitionBadge'
+import type {
+  RecognitionResult,
+  RecognitionStatus,
+} from '../types/recognition'
 
 type CameraViewProps = {
   videoRef: RefObject<HTMLVideoElement | null>
   isRunning: boolean
+  recognition: {
+    error: string | null
+    result: RecognitionResult | null
+    status: RecognitionStatus
+  }
 }
 
-export function CameraView({ videoRef, isRunning }: CameraViewProps) {
+export function CameraView({
+  videoRef,
+  isRunning,
+  recognition,
+}: CameraViewProps) {
   return (
     <div
       className={`camera-view${isRunning ? ' camera-view--active' : ''}`}
@@ -45,6 +59,13 @@ export function CameraView({ videoRef, isRunning }: CameraViewProps) {
         <span />
         LIVE
       </span>
+      {isRunning && (
+        <RecognitionBadge
+          error={recognition.error}
+          result={recognition.result}
+          status={recognition.status}
+        />
+      )}
     </div>
   )
 }
