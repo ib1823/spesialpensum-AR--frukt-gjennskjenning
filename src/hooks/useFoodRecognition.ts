@@ -36,6 +36,7 @@ export function useFoodRecognition(
 ) {
   const [result, setResult] = useState<RecognitionResult | null>(null)
   const [candidate, setCandidate] = useState<RecognitionResult | null>(null)
+  const [detections, setDetections] = useState<RecognitionResult[]>([])
   const [textResult, setTextResult] = useState<RecognitionResult | null>(null)
   const [textAnalyzing, setTextAnalyzing] = useState(false)
   const [textError, setTextError] = useState<string | null>(null)
@@ -46,6 +47,7 @@ export function useFoodRecognition(
     if (!enabled) {
       setResult(null)
       setCandidate(null)
+      setDetections([])
       setTextResult(null)
       setTextAnalyzing(false)
       setTextError(null)
@@ -65,6 +67,7 @@ export function useFoodRecognition(
 
     setResult(null)
     setCandidate(null)
+    setDetections([])
     setTextResult(null)
     setTextAnalyzing(false)
     setTextError(null)
@@ -102,10 +105,12 @@ export function useFoodRecognition(
           })
 
         while (active) {
-          const prediction = await recognitionService.recognizeFrame(video)
+          const frame = await recognitionService.recognizeFrame(video)
           if (!active) {
             break
           }
+          const prediction = frame?.result ?? null
+          setDetections(frame?.detections ?? [])
 
           if (prediction) {
             missedPredictions = 0
@@ -217,6 +222,7 @@ export function useFoodRecognition(
 
   return {
     candidate: shouldDisplayText ? null : candidate,
+    detections,
     error,
     result: shouldDisplayText ? textResult : result,
     status,

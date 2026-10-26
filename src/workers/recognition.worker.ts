@@ -3,6 +3,7 @@ import wasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url'
 import type {
   FoodCategory,
   RecognitionBox,
+  RecognitionFrame,
   RecognitionResult,
 } from '../types/recognition'
 
@@ -28,7 +29,8 @@ type WorkerRequest =
 
 type WorkerResponse = {
   id: number
-  result?: RecognitionResult
+  result?: RecognitionResult | null
+  detections?: RecognitionResult[]
   error?: string
 }
 
@@ -168,7 +170,7 @@ async function recognize(
   data: Uint8Array,
   width: number,
   height: number,
-): Promise<RecognitionResult> {
+): Promise<RecognitionFrame> {
   if (!session) {
     throw new Error('AI-modellen er ikke lastet.')
   }
@@ -181,7 +183,7 @@ async function recognize(
   )
   const classes = outputs.detection_classes.data
   const scores = outputs.detection_scores.data
-  let bestResult: RecognitionResult | null = null
+  const detections: RecognitionResult[] = []
 
   for (let index = 0; index < count; index += 1) {
     const classId = Math.round(Number(classes[index]))
@@ -218,18 +220,16 @@ async function recognize(
             foodCategory,
           }
 
-      if (!bestResult || confidence > (bestResult.confidence ?? 0)) {
-        bestResult = detection
-      }
+      detections.push(detection)
     }
   }
 
-  return bestResult ?? {
-    label: 'unknown',
-    confidence: null,
-    box: null,
-    source: 'object-detection',
-  }
+  detections.sort(
+    (first, second) =>
+      (second.confidence ?? 0) - (first.confidence ?? 0),
+  )
+
+  return { result: detections[0] ?? null, detections }
 }
 
 async function handleRequest(request: WorkerRequest): Promise<WorkerResponse> {
@@ -241,7 +241,7 @@ async function handleRequest(request: WorkerRequest): Promise<WorkerResponse> {
       case 'recognize':
         return {
           id: request.id,
-          result: await recognize(request.data, request.width, request.height),
+          ...(await recognize(request.data, request.width, request.height)),
         }
       case 'release':
         if (session) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   findFoodMatches,
   type MatvaretabellenFood,
@@ -8,6 +8,12 @@ import type { FoodCategory } from '../types/recognition'
 type NutritionLookupProps = {
   category: FoodCategory
   detectedName: string
+  position: {
+    left: number
+    top: number
+    placement: 'above' | 'below' | 'left' | 'right'
+  }
+  trackingVisible: boolean
 }
 
 const DISPLAYED_NUTRIENTS = ['Protein', 'Karbo', 'Fett', 'Fiber']
@@ -15,11 +21,29 @@ const DISPLAYED_NUTRIENTS = ['Protein', 'Karbo', 'Fett', 'Fiber']
 export function NutritionLookup({
   category,
   detectedName,
+  position,
+  trackingVisible,
 }: NutritionLookupProps) {
   const [foods, setFoods] = useState<MatvaretabellenFood[]>([])
   const [selectedFoodId, setSelectedFoodId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const trackingStyle: CSSProperties = {
+    left: `${position.left}%`,
+    top: `${position.top}%`,
+  }
+  const trackingClassName = [
+    'nutrition-tracking',
+    `nutrition-tracking--${position.placement}`,
+    !trackingVisible ? 'nutrition-tracking--fading' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const wrapInTrackingOverlay = (content: ReactNode) => (
+    <div className={trackingClassName} style={trackingStyle}>
+      {content}
+    </div>
+  )
 
   useEffect(() => {
     let active = true
@@ -53,32 +77,32 @@ export function NutritionLookup({
   }, [category])
 
   if (loading) {
-    return (
+    return wrapInTrackingOverlay(
       <div className="nutrition-lookup" role="status">
         Henter næringsdata fra Matvaretabellen...
-      </div>
+      </div>,
     )
   }
 
   if (error) {
-    return (
+    return wrapInTrackingOverlay(
       <div className="nutrition-lookup nutrition-lookup--error" role="status">
         {error}
-      </div>
+      </div>,
     )
   }
 
   if (!foods.length) {
-    return (
+    return wrapInTrackingOverlay(
       <div className="nutrition-lookup">
         Fant ingen passende matvareoppføring i Matvaretabellen.
-      </div>
+      </div>,
     )
   }
 
   const selectedFood = foods.find((food) => food.id === selectedFoodId)
 
-  return (
+  return wrapInTrackingOverlay(
     <section className="nutrition-lookup" aria-label="Næringsinnhold">
       <header className="nutrition-lookup__header">
         <div>
@@ -146,7 +170,7 @@ export function NutritionLookup({
           Velg den varianten som passer. Næringsverdier vises først etter valg.
         </p>
       )}
-    </section>
+    </section>,
   )
 }
 

@@ -35,6 +35,11 @@ export type RecognitionResult = {
   foodCategory?: FoodCategory
 }
 
+export type RecognitionFrame = {
+  result: RecognitionResult | null
+  detections: RecognitionResult[]
+}
+
 export type TextRecognitionResult = {
   result: RecognitionResult | null
   error?: string

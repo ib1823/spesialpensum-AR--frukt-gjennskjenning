@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { ARFoodLabel } from './ARFoodLabel'
 import { ARScanEffect } from './ARScanEffect'
+import { NutritionLookup } from './NutritionLookup'
 import type {
   RecognitionResult,
   RecognitionStatus,
@@ -11,6 +12,7 @@ type CameraViewProps = {
   isRunning: boolean
   recognition: {
     candidate: RecognitionResult | null
+    detections: RecognitionResult[]
     error: string | null
     result: RecognitionResult | null
     status: RecognitionStatus
@@ -33,6 +35,118 @@ type OverlayPosition = {
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value))
+}
+
+function getFoodName(detection: RecognitionResult): string {
+  if (detection.label === 'apple') {
+    return 'Eple'
+  }
+  if (detection.label === 'banana') {
+    return 'Banan'
+  }
+
+  const names: Record<string, string> = {
+    broccoli: 'Brokkoli',
+    carrot: 'Gulrot',
+    cake: 'Kake',
+    donut: 'Smultring',
+    'hot-dog': 'Pølse i brød',
+    orange: 'Appelsin',
+    pizza: 'Pizza',
+    sandwich: 'Smørbrød',
+  }
+  return detection.foodCategory
+    ? (names[detection.foodCategory] ?? 'Matvare')
+    : 'Matvare'
+}
+
+function getIntersectionOverUnion(
+  first: OverlayPosition['bounds'],
+  second: OverlayPosition['bounds'],
+): number {
+  const overlapWidth = Math.max(
+    0,
+    Math.min(first.left + first.width, second.left + second.width) -
+      Math.max(first.left, second.left),
+  )
+  const overlapHeight = Math.max(
+    0,
+    Math.min(first.top + first.height, second.top + second.height) -
+      Math.max(first.top, second.top),
+  )
+  const intersection = overlapWidth * overlapHeight
+  const union =
+    first.width * first.height +
+    second.width * second.height -
+    intersection
+  return union > 0 ? intersection / union : 0
+}
+
+function findTrackedDetection(
+  target: RecognitionResult,
+  detections: RecognitionResult[],
+  container: HTMLDivElement,
+  video: HTMLVideoElement,
+): RecognitionResult | null {
+  const targetPosition = getOverlayPosition(container, video, target)
+  if (!targetPosition) {
+    return null
+  }
+
+  let bestMatch: RecognitionResult | null = null
+  let bestScore = 0
+
+  for (const detection of detections) {
+    if (
+      !detection.box ||
+      detection.label !== target.label ||
+      detection.foodCategory !== target.foodCategory ||
+      (target.label === 'object' &&
+        detection.recognizedText !== target.recognizedText)
+    ) {
+      continue
+    }
+
+    const detectionPosition = getOverlayPosition(container, video, detection)
+    if (!detectionPosition) {
+      continue
+    }
+
+    const overlap = getIntersectionOverUnion(
+      targetPosition.bounds,
+      detectionPosition.bounds,
+    )
+    const targetCenterX =
+      targetPosition.bounds.left + targetPosition.bounds.width / 2
+    const targetCenterY =
+      targetPosition.bounds.top + targetPosition.bounds.height / 2
+    const detectionCenterX =
+      detectionPosition.bounds.left + detectionPosition.bounds.width / 2
+    const detectionCenterY =
+      detectionPosition.bounds.top + detectionPosition.bounds.height / 2
+    const distance = Math.hypot(
+      targetCenterX - detectionCenterX,
+      targetCenterY - detectionCenterY,
+    )
+    const targetDiagonal = Math.hypot(
+      targetPosition.bounds.width,
+      targetPosition.bounds.height,
+    )
+    const maximumDistance = Math.max(6, targetDiagonal * 0.8)
+    const score =
+      overlap >= 0.08
+        ? overlap
+        : distance <= maximumDistance
+          ? 0.08 - distance / (maximumDistance * 100)
+          : 0
+
+    if (score > bestScore) {
+      bestMatch = detection
+      bestScore = score
+    }
+  }
+
+  return bestMatch
 }
 
 function getOverlayPosition(
@@ -92,8 +206,8 @@ function getOverlayPosition(
     return null
   }
 
-  const labelWidth = Math.min(224, containerRect.width - 24)
-  const labelHeight = Math.min(210, containerRect.height * 0.5)
+  const labelWidth = Math.min(300, containerRect.width - 24)
+  const labelHeight = Math.min(320, containerRect.height - 24)
   const gap = 14
   const spaces = {
     right: containerRect.width * (1 - boundsRight),
@@ -169,22 +283,22 @@ export function CameraView({
     useState<OverlayPosition | null>(null)
   const [trackedResult, setTrackedResult] =
     useState<RecognitionResult | null>(null)
+  const [selectedTarget, setSelectedTarget] =
+    useState<RecognitionResult | null>(null)
   const [trackingVisible, setTrackingVisible] = useState(true)
+  const selectionVersionRef = useRef(0)
   const evaluating =
-    recognition.textAnalyzing ||
-    (Boolean(recognition.candidate) &&
-      (!recognition.result ||
-        recognition.candidate?.label !== recognition.result.label ||
-        recognition.candidate?.recognizedText !==
-          recognition.result.recognizedText))
-  const detection =
-    evaluating && recognition.candidate?.box
-      ? recognition.candidate
-      : recognition.result?.box
-        ? recognition.result
-        : recognition.candidate
-  const detectionRef = useRef<RecognitionResult | null>(detection)
-  detectionRef.current = detection
+    !selectedTarget &&
+    (recognition.textAnalyzing ||
+      (Boolean(recognition.candidate) &&
+        (!recognition.result ||
+          recognition.candidate?.label !== recognition.result.label ||
+          recognition.candidate?.recognizedText !==
+            recognition.result.recognizedText)))
+  const detectionsRef = useRef<RecognitionResult[]>(recognition.detections)
+  detectionsRef.current = recognition.detections
+  const selectedTargetRef = useRef<RecognitionResult | null>(selectedTarget)
+  selectedTargetRef.current = selectedTarget
 
   useEffect(() => {
     const container = containerRef.current
@@ -192,6 +306,9 @@ export function CameraView({
     if (!container || !video || !isRunning) {
       setOverlayPosition(null)
       setTrackedResult(null)
+      setSelectedTarget(null)
+      selectedTargetRef.current = null
+      selectionVersionRef.current += 1
       setTrackingVisible(true)
       return
     }
@@ -203,6 +320,7 @@ export function CameraView({
     let currentPosition: OverlayPosition | null = null
     let currentResult: RecognitionResult | null = null
     let visible = true
+    let previousSelectionVersion = selectionVersionRef.current
     const reduceMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
     ).matches
@@ -210,16 +328,35 @@ export function CameraView({
     const animate = (timestamp: number) => {
       const delta = lastFrameAt ? timestamp - lastFrameAt : 16
       lastFrameAt = timestamp
-      const targetResult = detectionRef.current
+      if (previousSelectionVersion !== selectionVersionRef.current) {
+        previousSelectionVersion = selectionVersionRef.current
+        currentPosition = null
+        currentResult = null
+        lastDetectionAt = 0
+      }
+      const selected = selectedTargetRef.current
+      const targetResult = selected
+        ? findTrackedDetection(
+            selected,
+            detectionsRef.current,
+            container,
+            video,
+          )
+        : null
+      if (targetResult && targetResult !== selected) {
+        selectedTargetRef.current = targetResult
+        setSelectedTarget(targetResult)
+      }
       const markTrackMissing = () => {
         if (!currentResult) {
           return
         }
-        if (visible) {
+        const missingFor = timestamp - lastDetectionAt
+        if (visible && missingFor > 500) {
           visible = false
           setTrackingVisible(false)
         }
-        if (timestamp - lastDetectionAt > 260) {
+        if (missingFor > 800) {
           currentPosition = null
           currentResult = null
           setTrackedResult(null)
@@ -291,12 +428,9 @@ export function CameraView({
     }
 
     const resizeObserver = new ResizeObserver(() => {
-      if (currentResult) {
-        currentPosition = getOverlayPosition(
-          container,
-          video,
-          detectionRef.current ?? currentResult,
-        )
+      const target = selectedTargetRef.current
+      if (target) {
+        currentPosition = getOverlayPosition(container, video, target)
       }
     })
     resizeObserver.observe(container)
@@ -308,7 +442,42 @@ export function CameraView({
     }
   }, [isRunning, videoRef])
 
-  const displayedResult = trackedResult ?? recognition.result
+  const displayedResult = selectedTarget ? trackedResult : null
+  const selectableDetections = recognition.detections
+    .filter(
+      (detection) =>
+        detection.box &&
+        (detection.foodCategory || detection.recognizedText),
+    )
+    .slice()
+    .reverse()
+  const selectTarget = (target: RecognitionResult) => {
+    selectionVersionRef.current += 1
+    selectedTargetRef.current = target
+    setSelectedTarget(target)
+    setTrackedResult(target)
+    setOverlayPosition(
+      containerRef.current && videoRef.current
+        ? getOverlayPosition(containerRef.current, videoRef.current, target)
+        : null,
+    )
+    setTrackingVisible(true)
+  }
+  const clearSelectedTarget = () => {
+    selectionVersionRef.current += 1
+    selectedTargetRef.current = null
+    setSelectedTarget(null)
+    setTrackedResult(null)
+    setOverlayPosition(null)
+    setTrackingVisible(true)
+  }
+  const showNutritionLookup = Boolean(
+    selectedTarget &&
+      trackedResult?.foodCategory &&
+      trackedResult.label !== 'apple' &&
+      trackedResult.label !== 'banana' &&
+      overlayPosition,
+  )
 
   return (
     <div
@@ -352,7 +521,75 @@ export function CameraView({
       </span>
       {isRunning && (
         <>
-          {recognition.status !== 'error' && (
+          {!selectedTarget && (
+            <div className="camera-target-prompt" role="status">
+              {selectableDetections.length
+                ? 'Trykk på objektet du vil velge'
+                : 'Pek kameraet mot et objekt og velg det når rammen vises'}
+            </div>
+          )}
+          {selectedTarget && (
+            <button
+              className="camera-target-clear"
+              type="button"
+              onClick={clearSelectedTarget}
+            >
+              Velg en annen vare
+            </button>
+          )}
+          {!selectedTarget &&
+            selectableDetections.map((detection, index) => {
+              const position =
+                containerRef.current && videoRef.current
+                  ? getOverlayPosition(
+                      containerRef.current,
+                      videoRef.current,
+                      detection,
+                    )
+                  : null
+              if (!position) {
+                return null
+              }
+              const itemName =
+                detection.label === 'object'
+                  ? detection.recognizedText ?? 'Objekt'
+                  : getFoodName(detection)
+              return (
+                <button
+                  aria-label={`Velg ${itemName}`}
+                  className="camera-target-option"
+                  key={`${detection.foodCategory}-${index}`}
+                  onClick={() => selectTarget(detection)}
+                  style={{
+                    left: `${position.bounds.left}%`,
+                    top: `${position.bounds.top}%`,
+                    width: `${position.bounds.width}%`,
+                    height: `${position.bounds.height}%`,
+                  }}
+                  type="button"
+                >
+                  <span>{itemName}</span>
+                </button>
+              )
+            })}
+          {showNutritionLookup &&
+            trackedResult?.foodCategory &&
+            overlayPosition && (
+              <NutritionLookup
+                key={trackedResult.foodCategory}
+                category={trackedResult.foodCategory}
+                detectedName={
+                  trackedResult.label === 'monster-energy'
+                    ? 'Monster Energy'
+                    : trackedResult.recognizedText ??
+                      'Gjenkjent matvare'
+                }
+                position={overlayPosition}
+                trackingVisible={trackingVisible}
+              />
+            )}
+          {recognition.status !== 'error' &&
+            (!selectedTarget || trackingVisible) && (
             <ARScanEffect
               box={
                 trackingVisible && overlayPosition?.bounds
@@ -383,17 +620,19 @@ export function CameraView({
               }
             />
           )}
-          <ARFoodLabel
-            error={recognition.error}
-            result={displayedResult}
-            status={recognition.status}
-            evaluating={evaluating}
-            candidate={recognition.candidate}
-            position={overlayPosition}
-            textAnalyzing={recognition.textAnalyzing}
-            textError={recognition.textError}
-            trackingVisible={trackingVisible}
-          />
+          {selectedTarget && displayedResult && !showNutritionLookup && (
+            <ARFoodLabel
+              error={recognition.error}
+              result={displayedResult}
+              status={recognition.status}
+              evaluating={evaluating}
+              candidate={recognition.candidate}
+              position={overlayPosition}
+              textAnalyzing={recognition.textAnalyzing}
+              textError={recognition.textError}
+              trackingVisible={trackingVisible}
+            />
+          )}
         </>
       )}
     </div>

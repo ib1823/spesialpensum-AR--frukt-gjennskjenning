@@ -240,6 +240,74 @@ h1 {
   box-shadow: 0 0 8px #9ada72;
 }
 
+.camera-target-prompt,
+.camera-target-clear {
+  position: absolute;
+  z-index: 18;
+  left: 50%;
+  padding: 10px 14px;
+  border: 1px solid rgba(152, 229, 255, 0.48);
+  border-radius: 999px;
+  background: rgba(8, 24, 37, 0.82);
+  box-shadow: 0 5px 22px rgba(0, 0, 0, 0.28);
+  color: #effbff;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: center;
+  transform: translateX(-50%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.camera-target-prompt {
+  top: calc(54px + env(safe-area-inset-top));
+  width: max-content;
+  max-width: calc(100% - 28px);
+  pointer-events: none;
+}
+
+.camera-target-clear {
+  top: calc(54px + env(safe-area-inset-top));
+  min-height: 42px;
+  cursor: pointer;
+}
+
+.camera-target-option {
+  position: absolute;
+  z-index: 17;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgba(116, 231, 255, 0.88);
+  border-radius: 12px;
+  background: rgba(67, 190, 222, 0.1);
+  box-shadow:
+    0 0 20px rgba(75, 211, 255, 0.17),
+    inset 0 0 14px rgba(105, 220, 255, 0.09);
+  color: white;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.camera-target-option:focus-visible {
+  outline: 3px solid #e1fbff;
+  outline-offset: 3px;
+}
+
+.camera-target-option span {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 5px 7px;
+  border: 1px solid rgba(159, 237, 255, 0.35);
+  border-radius: 6px;
+  background: rgba(5, 22, 34, 0.82);
+  color: #effbff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .ar-scan-target {
   position: absolute;
   z-index: 2;
@@ -636,6 +704,56 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.nutrition-tracking {
+  position: absolute;
+  z-index: 16;
+  width: min(300px, calc(100% - 24px));
+  max-height: min(42dvh, 390px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+  transition:
+    left 70ms linear,
+    top 70ms linear,
+    opacity 220ms ease;
+}
+
+.nutrition-tracking > .nutrition-lookup {
+  width: 100%;
+  max-height: min(42dvh, 390px);
+  margin: 0;
+  overflow: auto;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
+}
+
+.nutrition-tracking--above {
+  transform: translate(-50%, -100%);
+}
+
+.nutrition-tracking--below {
+  transform: translate(-50%, 0);
+}
+
+.nutrition-tracking--left {
+  transform: translate(-100%, -50%);
+}
+
+.nutrition-tracking--right {
+  transform: translate(0, -50%);
+}
+
+.nutrition-tracking--fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@supports not (height: 100dvh) {
+  .nutrition-tracking,
+  .nutrition-tracking > .nutrition-lookup {
+    max-height: min(42vh, 390px);
+  }
+}
+
 .app-shell--camera-active {
   position: fixed;
   inset: 0;
@@ -724,25 +842,6 @@ h1 {
   border-radius: 9px;
   background: rgba(54, 25, 21, 0.88);
   color: #ffe5d8;
-}
-
-.app-shell--camera-active .nutrition-lookup {
-  position: fixed;
-  z-index: 14;
-  bottom: calc(91px + env(safe-area-inset-bottom));
-  left: 50%;
-  width: min(560px, calc(100% - 24px));
-  max-height: min(42dvh, 390px);
-  margin: 0;
-  overflow-y: auto;
-  transform: translateX(-50%);
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
-}
-
-@supports not (height: 100dvh) {
-  .app-shell--camera-active .nutrition-lookup {
-    max-height: 42vh;
-  }
 }
 
 .app-shell--camera-active .ar-food-label {

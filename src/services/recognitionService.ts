@@ -1,5 +1,5 @@
 import { preprocessVideoFrame } from './framePreprocessor'
-import type { RecognitionResult } from '../types/recognition'
+import type { RecognitionFrame, RecognitionResult } from '../types/recognition'
 
 type WorkerCommand =
   | { type: 'load' }
@@ -15,7 +15,8 @@ type WorkerRequest = WorkerCommand & { id: number }
 
 type WorkerResponse = {
   id: number
-  result?: RecognitionResult
+  result?: RecognitionResult | null
+  detections?: RecognitionResult[]
   error?: string
 }
 
@@ -47,7 +48,7 @@ export class RecognitionService {
 
   async recognizeFrame(
     video: HTMLVideoElement,
-  ): Promise<RecognitionResult | null> {
+  ): Promise<RecognitionFrame | null> {
     const frame = preprocessVideoFrame(video)
     if (!frame) {
       return null
@@ -60,11 +61,14 @@ export class RecognitionService {
       height: frame.height,
     })
 
-    if (!result.result) {
-      throw new Error('AI-modellen returnerte ingen gjenkjenningsresultater.')
+    if (!result.detections) {
+      throw new Error('AI-modellen returnerte ikke deteksjonslisten.')
     }
 
-    return result.result
+    return {
+      result: result.result ?? null,
+      detections: result.detections,
+    }
   }
 
   async dispose(): Promise<void> {
