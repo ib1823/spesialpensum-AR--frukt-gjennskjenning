@@ -160,6 +160,34 @@ export function ARFoodLabel({
     )
   }
 
+  if (result.label === 'object') {
+    return (
+      <div
+        className={`ar-food-label${position ? ` ar-food-label--${position.placement}` : ''}`}
+        role="status"
+        aria-live="polite"
+        style={labelStyle}
+      >
+        <div className="ar-food-label__panel" key={result.recognizedText}>
+          <span className="ar-food-label__eyebrow">OBJEKT GJENKJENT</span>
+          <span className="ar-food-label__title">
+            {result.recognizedText ?? 'Ukjent objekt'}
+          </span>
+          {result.confidence !== null && (
+            <span className="ar-food-label__detail">
+              Objektscore {(result.confidence * 100).toFixed(0)}%
+            </span>
+          )}
+          {textError && (
+            <span className="ar-food-label__detail">
+              Tekstlesing utilgjengelig
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const isKnownFood = result.label !== 'unknown'
   const isTextRecognition = result.source === 'text-recognition'
 

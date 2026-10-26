@@ -20,6 +20,16 @@ function getErrorMessage(error: unknown): string {
     : 'Matgjenkjenningen kunne ikke startes.'
 }
 
+function getPredictionKey(
+  prediction: RecognitionResult | null,
+): string | null {
+  if (!prediction) {
+    return null
+  }
+
+  return `${prediction.label}:${prediction.recognizedText ?? ''}`
+}
+
 export function useFoodRecognition(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   enabled: boolean,
@@ -45,7 +55,7 @@ export function useFoodRecognition(
     }
 
     let active = true
-    let candidateLabel: RecognitionResult['label'] | null = null
+    let candidateLabel: string | null = null
     let candidateCount = 0
     let missedPredictions = 0
     let textRecognitionReady = false
@@ -99,16 +109,18 @@ export function useFoodRecognition(
 
           if (prediction) {
             missedPredictions = 0
-            if (prediction.label === candidateLabel) {
+            const predictionKey = getPredictionKey(prediction)
+            if (predictionKey === candidateLabel) {
               candidateCount += 1
             } else {
-              candidateLabel = prediction.label
+              candidateLabel = predictionKey
               candidateCount = 1
             }
 
             setCandidate((previous) => {
               if (
-                previous?.label !== prediction.label ||
+                !previous ||
+                getPredictionKey(previous) !== predictionKey ||
                 !previous.box ||
                 !prediction.box
               ) {
@@ -138,7 +150,8 @@ export function useFoodRecognition(
             if (candidateCount >= REQUIRED_STABLE_PREDICTIONS) {
               setResult((previous) => {
                 if (
-                  previous?.label !== prediction.label ||
+                  !previous ||
+                  getPredictionKey(previous) !== predictionKey ||
                   !previous.box ||
                   !prediction.box
                 ) {
@@ -178,7 +191,8 @@ export function useFoodRecognition(
           if (
             textRecognitionService &&
             textRecognitionReady &&
-            prediction?.label === 'unknown' &&
+            prediction?.label !== 'apple' &&
+            prediction?.label !== 'banana' &&
             !textRecognitionInProgress &&
             Date.now() - lastTextRecognitionAt >=
               TEXT_RECOGNITION_INTERVAL_MS
@@ -252,7 +266,8 @@ export function useFoodRecognition(
 
   const shouldDisplayText =
     textResult?.label === 'monster-energy' ||
-    (textResult !== null && (!result || result.label === 'unknown'))
+    (textResult !== null &&
+      (!result || result.label === 'unknown' || result.label === 'object'))
 
   return {
     candidate: shouldDisplayText ? null : candidate,

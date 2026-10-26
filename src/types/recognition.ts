@@ -3,6 +3,7 @@ export type RecognitionLabel =
   | 'apple'
   | 'monster-energy'
   | 'text'
+  | 'object'
   | 'unknown'
 
 export type RecognitionBox = {

@@ -4,8 +4,6 @@ import type { RecognitionBox, RecognitionResult } from '../types/recognition'
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/ssd-mobilenet-v1-12-int8.onnx`
 const MIN_RECOGNITION_CONFIDENCE = 0.45
-const BANANA_CLASS_ID = 52
-const APPLE_CLASS_ID = 53
 const REQUIRED_OUTPUTS = [
   'detection_boxes',
   'detection_classes',
@@ -31,6 +29,94 @@ type WorkerResponse = {
 }
 
 let session: ort.InferenceSession | null = null
+
+const COCO_LABELS: Record<number, string> = {
+  1: 'person',
+  2: 'sykkel',
+  3: 'bil',
+  4: 'motorsykkel',
+  5: 'fly',
+  6: 'buss',
+  7: 'tog',
+  8: 'lastebil',
+  9: 'båt',
+  10: 'trafikklys',
+  11: 'brannhydrant',
+  13: 'stoppskilt',
+  14: 'parkeringsautomat',
+  15: 'benk',
+  16: 'fugl',
+  17: 'katt',
+  18: 'hund',
+  19: 'hest',
+  20: 'sau',
+  21: 'ku',
+  22: 'elefant',
+  23: 'bjørn',
+  24: 'sebra',
+  25: 'sjiraff',
+  27: 'ryggsekk',
+  28: 'paraply',
+  31: 'håndveske',
+  32: 'slips',
+  33: 'koffert',
+  34: 'frisbee',
+  35: 'ski',
+  36: 'snowboard',
+  37: 'ball',
+  38: 'drage',
+  39: 'baseballkølle',
+  40: 'baseballhanske',
+  41: 'skateboard',
+  42: 'surfebrett',
+  43: 'tennisracket',
+  44: 'flaske',
+  46: 'vinglass',
+  47: 'kopp',
+  48: 'gaffel',
+  49: 'kniv',
+  50: 'skje',
+  51: 'bolle',
+  52: 'banan',
+  53: 'eple',
+  54: 'smørbrød',
+  55: 'appelsin',
+  56: 'brokkoli',
+  57: 'gulrot',
+  58: 'pølse i brød',
+  59: 'pizza',
+  60: 'smultring',
+  61: 'kake',
+  62: 'stol',
+  63: 'sofa',
+  64: 'potteplante',
+  65: 'seng',
+  67: 'spisebord',
+  70: 'toalett',
+  72: 'TV',
+  73: 'bærbar PC',
+  74: 'mus',
+  75: 'fjernkontroll',
+  76: 'tastatur',
+  77: 'mobiltelefon',
+  78: 'mikrobølgeovn',
+  79: 'stekeovn',
+  80: 'brødrister',
+  81: 'vask',
+  82: 'kjøleskap',
+  84: 'bok',
+  85: 'klokke',
+  86: 'vase',
+  87: 'saks',
+  88: 'bamse',
+  89: 'hårføner',
+  90: 'tannbørste',
+}
+
+const FOOD_LABELS: Record<number, 'banana' | 'apple'> = {
+  52: 'banana',
+  53: 'apple',
+}
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -79,7 +165,6 @@ async function recognize(
   const classes = outputs.detection_classes.data
   const scores = outputs.detection_scores.data
   let bestResult: RecognitionResult | null = null
-  let bestDetection: RecognitionResult | null = null
 
   for (let index = 0; index < count; index += 1) {
     const classId = Math.round(Number(classes[index]))
@@ -91,35 +176,30 @@ async function recognize(
       yMax: Number(outputs.detection_boxes.data[offset + 2]),
       xMax: Number(outputs.detection_boxes.data[offset + 3]),
     }
-    const label =
-      classId === BANANA_CLASS_ID
-        ? 'banana'
-        : classId === APPLE_CLASS_ID
-          ? 'apple'
-          : null
-
-    if (
-      confidence >= MIN_RECOGNITION_CONFIDENCE &&
-      (!bestDetection || confidence > (bestDetection.confidence ?? 0))
-    ) {
-      bestDetection = {
-        label: 'unknown',
-        confidence,
-        box,
-        source: 'object-detection',
-      }
+    if (confidence < MIN_RECOGNITION_CONFIDENCE) {
+      continue
     }
 
-    if (
-      label &&
-      confidence >= MIN_RECOGNITION_CONFIDENCE &&
-      (!bestResult || confidence > (bestResult.confidence ?? 0))
-    ) {
-      bestResult = { label, confidence, box, source: 'object-detection' }
+    const foodLabel = FOOD_LABELS[classId]
+    const objectName = COCO_LABELS[classId]
+    if (foodLabel || objectName) {
+      const detection: RecognitionResult = foodLabel
+        ? { label: foodLabel, confidence, box, source: 'object-detection' }
+        : {
+            label: 'object',
+            confidence,
+            box,
+            recognizedText: objectName,
+            source: 'object-detection',
+          }
+
+      if (!bestResult || confidence > (bestResult.confidence ?? 0)) {
+        bestResult = detection
+      }
     }
   }
 
-  return bestResult ?? bestDetection ?? {
+  return bestResult ?? {
     label: 'unknown',
     confidence: null,
     box: null,

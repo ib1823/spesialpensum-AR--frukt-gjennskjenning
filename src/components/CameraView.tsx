@@ -123,7 +123,9 @@ export function CameraView({
     recognition.textAnalyzing ||
     (Boolean(recognition.candidate) &&
       (!recognition.result ||
-        recognition.candidate?.label !== recognition.result.label))
+        recognition.candidate?.label !== recognition.result.label ||
+        recognition.candidate?.recognizedText !==
+          recognition.result.recognizedText))
 
   useEffect(() => {
     const container = containerRef.current
