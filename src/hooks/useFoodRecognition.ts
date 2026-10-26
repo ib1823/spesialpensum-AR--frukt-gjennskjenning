@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  loadRecognitionModel,
-  recognizeFrame,
-} from '../services/recognitionService'
+import { RecognitionService } from '../services/recognitionService'
 import type {
   RecognitionResult,
   RecognitionStatus,
@@ -40,15 +37,17 @@ export function useFoodRecognition(
     let active = true
     let candidateLabel: RecognitionResult['label'] | null = null
     let candidateCount = 0
-    let session: Awaited<ReturnType<typeof loadRecognitionModel>> | null = null
 
     setResult(null)
     setError(null)
     setStatus('loading')
 
     const run = async () => {
+      let recognitionService: RecognitionService | null = null
+
       try {
-        session = await loadRecognitionModel()
+        recognitionService = new RecognitionService()
+        await recognitionService.load()
         if (!active) {
           return
         }
@@ -60,7 +59,7 @@ export function useFoodRecognition(
         }
 
         while (active) {
-          const prediction = await recognizeFrame(session, video)
+          const prediction = await recognitionService.recognizeFrame(video)
           if (!active) {
             break
           }
@@ -86,9 +85,9 @@ export function useFoodRecognition(
           setStatus('error')
         }
       } finally {
-        if (session) {
+        if (recognitionService) {
           try {
-            await session.release()
+            await recognitionService.dispose()
           } catch (releaseError) {
             if (active) {
               setError(getErrorMessage(releaseError))

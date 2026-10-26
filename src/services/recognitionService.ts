@@ -1,74 +1,152 @@
-import * as ort from 'onnxruntime-web/wasm'
-import wasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url'
-import { createFrameTensor } from './framePreprocessor'
+import { preprocessVideoFrame } from './framePreprocessor'
 import type { RecognitionResult } from '../types/recognition'
 
-const MODEL_URL = `${import.meta.env.BASE_URL}models/ssd-mobilenet-v1-12-int8.onnx`
+type WorkerCommand =
+  | { type: 'load' }
+  | {
+      type: 'recognize'
+      data: Uint8Array
+      width: number
+      height: number
+    }
+  | { type: 'release' }
 
-export const MIN_RECOGNITION_CONFIDENCE = 0.45
+type WorkerRequest = WorkerCommand & { id: number }
 
-const BANANA_CLASS_ID = 52
-const APPLE_CLASS_ID = 53
-const REQUIRED_OUTPUTS = [
-  'detection_boxes',
-  'detection_classes',
-  'detection_scores',
-  'num_detections',
-]
-
-export async function loadRecognitionModel(): Promise<ort.InferenceSession> {
-  ort.env.wasm.numThreads = 1
-  ort.env.wasm.proxy = true
-  ort.env.wasm.wasmPaths = { wasm: wasmUrl }
-
-  const session = await ort.InferenceSession.create(MODEL_URL, {
-    executionProviders: ['wasm'],
-  })
-
-  if (REQUIRED_OUTPUTS.some((name) => !session.outputNames.includes(name))) {
-    await session.release()
-    throw new Error('AI-modellen har et uventet utdataformat.')
-  }
-
-  return session
+type WorkerResponse = {
+  id: number
+  result?: RecognitionResult
+  error?: string
 }
 
-export async function recognizeFrame(
-  session: ort.InferenceSession,
-  video: HTMLVideoElement,
-): Promise<RecognitionResult | null> {
-  const input = createFrameTensor(video)
-  if (!input) {
-    return null
+type PendingRequest = {
+  resolve: (response: WorkerResponse) => void
+  reject: (error: Error) => void
+}
+
+export class RecognitionService {
+  private readonly worker: Worker
+  private nextRequestId = 0
+  private readonly pending = new Map<number, PendingRequest>()
+  private disposed = false
+  private workerFailure: Error | null = null
+
+  constructor() {
+    this.worker = new Worker(
+      new URL('../workers/recognition.worker.ts', import.meta.url),
+      { type: 'module' },
+    )
+    this.worker.addEventListener('message', this.handleMessage)
+    this.worker.addEventListener('error', this.handleWorkerError)
+    this.worker.addEventListener('messageerror', this.handleMessageError)
   }
 
-  const output = await session.run({ [session.inputNames[0]]: input })
-  const detections = {
-    classes: output.detection_classes.data,
-    count: output.num_detections.data[0],
-    scores: output.detection_scores.data,
+  async load(): Promise<void> {
+    await this.send({ type: 'load' })
   }
-  const count = Math.min(10, Math.floor(Number(detections.count)))
-  let bestResult: RecognitionResult | null = null
 
-  for (let index = 0; index < count; index += 1) {
-    const classId = Math.round(Number(detections.classes[index]))
-    const confidence = Number(detections.scores[index])
-    const label =
-      classId === BANANA_CLASS_ID
-        ? 'banana'
-        : classId === APPLE_CLASS_ID
-          ? 'apple'
-          : null
+  async recognizeFrame(
+    video: HTMLVideoElement,
+  ): Promise<RecognitionResult | null> {
+    const frame = preprocessVideoFrame(video)
+    if (!frame) {
+      return null
+    }
 
-    if (
-      label &&
-      confidence >= MIN_RECOGNITION_CONFIDENCE &&
-      (!bestResult || confidence > (bestResult.confidence ?? 0))
-    ) {
-      bestResult = { label, confidence }
+    const result = await this.send({
+      type: 'recognize',
+      data: frame.data,
+      width: frame.width,
+      height: frame.height,
+    })
+
+    if (!result.result) {
+      throw new Error('AI-modellen returnerte ingen gjenkjenningsresultater.')
+    }
+
+    return result.result
+  }
+
+  async dispose(): Promise<void> {
+    if (this.disposed) {
+      return
+    }
+
+    try {
+      if (!this.workerFailure) {
+        await this.send({ type: 'release' })
+      }
+    } finally {
+      this.disposed = true
+      this.worker.removeEventListener('message', this.handleMessage)
+      this.worker.removeEventListener('error', this.handleWorkerError)
+      this.worker.removeEventListener('messageerror', this.handleMessageError)
+      this.worker.terminate()
+      this.rejectPending(new Error('Matgjenkjenningen ble avsluttet.'))
     }
   }
 
-  return bestResult ?? { label: 'unknown', confidence: null }
+  private send(request: WorkerCommand): Promise<WorkerResponse> {
+    if (this.disposed) {
+      return Promise.reject(new Error('Matgjenkjenningen er avsluttet.'))
+    }
+
+    const id = ++this.nextRequestId
+    const fullRequest: WorkerRequest = { ...request, id }
+
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject })
+
+      try {
+        if (fullRequest.type === 'recognize') {
+          this.worker.postMessage(fullRequest, [fullRequest.data.buffer])
+        } else {
+          this.worker.postMessage(fullRequest)
+        }
+      } catch (error) {
+        this.pending.delete(id)
+        reject(
+          error instanceof Error
+            ? error
+            : new Error('Forespørselen til AI-arbeideren kunne ikke sendes.'),
+        )
+      }
+    })
+  }
+
+  private readonly handleMessage = (event: MessageEvent<WorkerResponse>) => {
+    const request = this.pending.get(event.data.id)
+    if (!request) {
+      return
+    }
+
+    this.pending.delete(event.data.id)
+    if (event.data.error) {
+      request.reject(new Error(event.data.error))
+    } else {
+      request.resolve(event.data)
+    }
+  }
+
+  private readonly handleWorkerError = (event: ErrorEvent) => {
+    event.preventDefault()
+    this.failWorker(new Error(event.message || 'AI-arbeideren kunne ikke startes.'))
+  }
+
+  private readonly handleMessageError = () => {
+    this.failWorker(new Error('Svar fra AI-arbeideren kunne ikke leses.'))
+  }
+
+  private failWorker(error: Error): void {
+    this.workerFailure = error
+    this.worker.terminate()
+    this.rejectPending(error)
+  }
+
+  private rejectPending(error: Error): void {
+    for (const request of this.pending.values()) {
+      request.reject(error)
+    }
+    this.pending.clear()
+  }
 }

@@ -1,11 +1,17 @@
-import { Tensor } from 'onnxruntime-web/wasm'
-
 const MAX_FRAME_EDGE = 320
 
 const canvas = document.createElement('canvas')
 const context = canvas.getContext('2d', { willReadFrequently: true })
 
-export function createFrameTensor(video: HTMLVideoElement): Tensor | null {
+export type ProcessedFrame = {
+  data: Uint8Array
+  width: number
+  height: number
+}
+
+export function preprocessVideoFrame(
+  video: HTMLVideoElement,
+): ProcessedFrame | null {
   if (!context || video.videoWidth === 0 || video.videoHeight === 0) {
     return null
   }
@@ -29,5 +35,5 @@ export function createFrameTensor(video: HTMLVideoElement): Tensor | null {
     input[pixel * 3 + 2] = data[pixel * 4 + 2]
   }
 
-  return new Tensor('uint8', input, [1, height, width, 3])
+  return { data: input, width, height }
 }
