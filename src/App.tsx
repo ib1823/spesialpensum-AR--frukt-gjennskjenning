@@ -9,7 +9,9 @@ function App() {
   const recognition = useFoodRecognition(camera.videoRef, camera.isRunning)
 
   return (
-    <main className="app-shell">
+    <main
+      className={`app-shell${camera.isRunning ? ' app-shell--camera-active' : ''}`}
+    >
       <header className="site-header">
         <a className="brand" href="/" aria-label="MatHjelp hjem">
           <span className="brand-mark" aria-hidden="true">

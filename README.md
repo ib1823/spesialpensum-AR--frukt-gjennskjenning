@@ -29,7 +29,7 @@ The production site is generated in `dist/`.
 
 `useCamera` owns the MediaDevices stream lifecycle and returns a `videoRef` pointing to the same `<video>` element used for the preview. `useFoodRecognition` consumes that video element without opening another camera stream. It preprocesses one frame at a time and transfers only the downsized pixels to a dedicated Vite-built Web Worker, where ONNX Runtime Web runs on WASM. The worker releases the inference session when the camera stops. AI errors are displayed separately and do not stop the camera.
 
-The camera requests the environment-facing lens when available and allows the browser to choose a camera if that preference is unavailable. Camera access begins only after the user presses **Start kamera**. Stopping the camera stops all tracks and recognition.
+The camera requests the environment-facing lens when available and allows the browser to choose a camera if that preference is unavailable. Camera access begins only after the user presses **Start kamera**; while running, the preview expands to a full-viewport camera screen with controls inset for mobile safe areas. Stopping the camera stops all tracks and recognition and returns to the normal page layout.
 
 ## Recognition model
 
