@@ -109,6 +109,7 @@ async function recognizeText(
     box: brandWord ? getBrandBox(words, width, height) : null,
     recognizedText,
     source: 'text-recognition',
+    foodCategory: brandWord ? 'energy-drink' : undefined,
   }
 }
 

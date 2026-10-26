@@ -1,6 +1,10 @@
 import * as ort from 'onnxruntime-web/wasm'
 import wasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url'
-import type { RecognitionBox, RecognitionResult } from '../types/recognition'
+import type {
+  FoodCategory,
+  RecognitionBox,
+  RecognitionResult,
+} from '../types/recognition'
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/ssd-mobilenet-v1-12-int8.onnx`
 const MIN_RECOGNITION_CONFIDENCE = 0.45
@@ -118,6 +122,19 @@ const FOOD_LABELS: Record<number, 'banana' | 'apple'> = {
   53: 'apple',
 }
 
+const FOOD_CATEGORIES: Partial<Record<number, FoodCategory>> = {
+  52: 'banana',
+  53: 'apple',
+  54: 'sandwich',
+  55: 'orange',
+  56: 'broccoli',
+  57: 'carrot',
+  58: 'hot-dog',
+  59: 'pizza',
+  60: 'donut',
+  61: 'cake',
+}
+
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message
@@ -182,15 +199,23 @@ async function recognize(
 
     const foodLabel = FOOD_LABELS[classId]
     const objectName = COCO_LABELS[classId]
+    const foodCategory = FOOD_CATEGORIES[classId]
     if (foodLabel || objectName) {
       const detection: RecognitionResult = foodLabel
-        ? { label: foodLabel, confidence, box, source: 'object-detection' }
+        ? {
+            label: foodLabel,
+            confidence,
+            box,
+            source: 'object-detection',
+            foodCategory,
+          }
         : {
             label: 'object',
             confidence,
             box,
             recognizedText: objectName,
             source: 'object-detection',
+            foodCategory,
           }
 
       if (!bestResult || confidence > (bestResult.confidence ?? 0)) {

@@ -267,7 +267,9 @@ export function useFoodRecognition(
   const shouldDisplayText =
     textResult?.label === 'monster-energy' ||
     (textResult !== null &&
-      (!result || result.label === 'unknown' || result.label === 'object'))
+      (!result ||
+        result.label === 'unknown' ||
+        (result.label === 'object' && !result.foodCategory)))
 
   return {
     candidate: shouldDisplayText ? null : candidate,

@@ -499,6 +499,97 @@ h1 {
   white-space: normal;
 }
 
+.nutrition-lookup {
+  display: flex;
+  width: 100%;
+  max-height: 190px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  overflow-y: auto;
+  border-top: 1px solid rgba(214, 245, 200, 0.22);
+  color: rgba(244, 250, 239, 0.9);
+  font-size: 9px;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.nutrition-lookup__heading {
+  color: #c9ebb8;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.8px;
+}
+
+.nutrition-lookup__label {
+  color: rgba(244, 250, 239, 0.75);
+  font-size: 9px;
+}
+
+.nutrition-lookup__select {
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 7px;
+  border: 1px solid rgba(201, 235, 184, 0.4);
+  border-radius: 6px;
+  background: rgba(12, 34, 24, 0.92);
+  color: white;
+  font: inherit;
+  font-size: 10px;
+}
+
+.nutrition-lookup__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.nutrition-lookup__value {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  background: rgba(229, 255, 212, 0.08);
+}
+
+.nutrition-lookup__value span {
+  color: rgba(244, 250, 239, 0.72);
+  font-size: 8px;
+}
+
+.nutrition-lookup__value strong {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.nutrition-lookup__source {
+  align-self: flex-start;
+  color: #caedb6;
+  font-size: 8px;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nutrition-lookup__hint {
+  margin: 0;
+  color: rgba(244, 250, 239, 0.78);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.nutrition-lookup--error {
+  color: #ffe3d8;
+  font-size: 9px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .ar-food-label--above {
   transform: translate(-50%, calc(-100% - 12px));
 }

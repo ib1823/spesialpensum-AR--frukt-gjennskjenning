@@ -6,6 +6,19 @@ export type RecognitionLabel =
   | 'object'
   | 'unknown'
 
+export type FoodCategory =
+  | 'banana'
+  | 'apple'
+  | 'orange'
+  | 'broccoli'
+  | 'carrot'
+  | 'sandwich'
+  | 'hot-dog'
+  | 'pizza'
+  | 'donut'
+  | 'cake'
+  | 'energy-drink'
+
 export type RecognitionBox = {
   xMin: number
   yMin: number
@@ -19,6 +32,7 @@ export type RecognitionResult = {
   box: RecognitionBox | null
   recognizedText?: string
   source?: 'object-detection' | 'text-recognition'
+  foodCategory?: FoodCategory
 }
 
 export type TextRecognitionResult = {
@@ -27,8 +41,3 @@ export type TextRecognitionResult = {
 }
 
 export type RecognitionStatus = 'idle' | 'loading' | 'ready' | 'error'
-
-export type NutritionLookupQuery = {
-  foodName: 'banan' | 'eple'
-  basis: '100 g'
-}
