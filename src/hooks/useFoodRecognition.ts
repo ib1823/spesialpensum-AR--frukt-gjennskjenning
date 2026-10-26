@@ -39,6 +39,7 @@ export function useFoodRecognition(
     let active = true
     let candidateLabel: RecognitionResult['label'] | null = null
     let candidateCount = 0
+    let missedPredictions = 0
 
     setResult(null)
     setCandidate(null)
@@ -68,6 +69,7 @@ export function useFoodRecognition(
           }
 
           if (prediction) {
+            missedPredictions = 0
             if (prediction.label === candidateLabel) {
               candidateCount += 1
             } else {
@@ -133,6 +135,14 @@ export function useFoodRecognition(
                   },
                 }
               })
+            }
+          } else {
+            candidateLabel = null
+            candidateCount = 0
+            missedPredictions += 1
+            if (missedPredictions >= REQUIRED_STABLE_PREDICTIONS) {
+              setCandidate(null)
+              setResult(null)
             }
           }
 

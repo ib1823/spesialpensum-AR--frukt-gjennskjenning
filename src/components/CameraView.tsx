@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import { RecognitionBadge } from './RecognitionBadge'
+import { ARFoodLabel } from './ARFoodLabel'
+import { ARScanEffect } from './ARScanEffect'
 import type {
   RecognitionResult,
   RecognitionStatus,
@@ -26,6 +27,10 @@ type OverlayPosition = {
     width: number
     height: number
   }
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value))
 }
 
 function getOverlayPosition(
@@ -57,30 +62,49 @@ function getOverlayPosition(
   const screenRight = videoRect.left + xMax * renderedWidth - cropX
   const screenTop = videoRect.top + box.yMin * renderedHeight - cropY
   const screenBottom = videoRect.top + box.yMax * renderedHeight - cropY
-  const placeAbove = box.yMin > 0.28
-  const labelY = placeAbove ? screenTop : screenBottom
+  const boundsLeft = clamp(
+    ((screenLeft - containerRect.left) / containerRect.width) * 100,
+    0,
+    100,
+  )
+  const boundsRight = clamp(
+    ((screenRight - containerRect.left) / containerRect.width) * 100,
+    0,
+    100,
+  )
+  const boundsTop = clamp(
+    ((screenTop - containerRect.top) / containerRect.height) * 100,
+    0,
+    100,
+  )
+  const boundsBottom = clamp(
+    ((screenBottom - containerRect.top) / containerRect.height) * 100,
+    0,
+    100,
+  )
+
+  if (boundsRight <= boundsLeft || boundsBottom <= boundsTop) {
+    return null
+  }
+
+  const placeAbove = boundsTop > 32
+  const labelY = placeAbove ? boundsTop : boundsBottom
+  const labelWidthPercent =
+    (Math.min(280, containerRect.width - 24) / containerRect.width) * 100
 
   return {
-    left: Math.min(
-      94,
-      Math.max(
-        6,
-        (((screenLeft + screenRight) / 2 - containerRect.left) /
-          containerRect.width) *
-          100,
-      ),
+    left: clamp(
+      (boundsLeft + boundsRight) / 2,
+      labelWidthPercent / 2,
+      100 - labelWidthPercent / 2,
     ),
-    top: Math.min(
-      94,
-      Math.max(6, ((labelY - containerRect.top) / containerRect.height) * 100),
-    ),
+    top: clamp(labelY, 6, 72),
     placement: placeAbove ? 'above' : 'below',
     bounds: {
-      left:
-        ((screenLeft - containerRect.left) / containerRect.width) * 100,
-      top: ((screenTop - containerRect.top) / containerRect.height) * 100,
-      width: ((screenRight - screenLeft) / containerRect.width) * 100,
-      height: ((screenBottom - screenTop) / containerRect.height) * 100,
+      left: boundsLeft,
+      top: boundsTop,
+      width: boundsRight - boundsLeft,
+      height: boundsBottom - boundsTop,
     },
   }
 }
@@ -94,8 +118,8 @@ export function CameraView({
   const [overlayPosition, setOverlayPosition] =
     useState<OverlayPosition | null>(null)
   const evaluating =
-    !recognition.result ||
-    (Boolean(recognition.candidate) &&
+    Boolean(recognition.candidate) &&
+    (!recognition.result ||
       recognition.candidate?.label !== recognition.result.label)
 
   useEffect(() => {
@@ -178,35 +202,42 @@ export function CameraView({
       {isRunning && (
         <>
           {recognition.status !== 'error' && (
-            <div
-              className={`recognition-target${overlayPosition?.bounds ? ' recognition-target--detected' : ' recognition-target--guide'}${evaluating ? ' recognition-target--scanning' : ' recognition-target--confirmed'}`}
-              aria-hidden="true"
-              style={
+            <ARScanEffect
+              box={
                 overlayPosition?.bounds
                   ? {
-                      left: `${overlayPosition.bounds.left}%`,
-                      top: `${overlayPosition.bounds.top}%`,
-                      width: `${overlayPosition.bounds.width}%`,
-                      height: `${overlayPosition.bounds.height}%`,
+                      xMin: overlayPosition.bounds.left / 100,
+                      yMin: overlayPosition.bounds.top / 100,
+                      xMax:
+                        (overlayPosition.bounds.left +
+                          overlayPosition.bounds.width) /
+                        100,
+                      yMax:
+                        (overlayPosition.bounds.top +
+                          overlayPosition.bounds.height) /
+                        100,
                     }
-                  : undefined
+                  : null
               }
-            >
-              <span className="recognition-target__corner recognition-target__corner--tl" />
-              <span className="recognition-target__corner recognition-target__corner--tr" />
-              <span className="recognition-target__corner recognition-target__corner--bl" />
-              <span className="recognition-target__corner recognition-target__corner--br" />
-              {evaluating && <span className="recognition-target__scanline" />}
-            </div>
+              state={
+                evaluating
+                  ? 'analyzing'
+                  : recognition.result?.label === 'unknown'
+                    ? 'unknown'
+                    : recognition.result
+                      ? 'recognized'
+                      : 'searching'
+              }
+            />
           )}
-        <RecognitionBadge
-          error={recognition.error}
-          result={recognition.result}
-          status={recognition.status}
-          evaluating={evaluating}
-          candidate={recognition.candidate}
-          position={overlayPosition}
-        />
+          <ARFoodLabel
+            error={recognition.error}
+            result={recognition.result}
+            status={recognition.status}
+            evaluating={evaluating}
+            candidate={recognition.candidate}
+            position={overlayPosition}
+          />
         </>
       )}
     </div>
