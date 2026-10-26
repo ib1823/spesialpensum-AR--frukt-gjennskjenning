@@ -502,75 +502,115 @@ h1 {
 .nutrition-lookup {
   display: flex;
   width: 100%;
-  max-height: 190px;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-  padding-top: 8px;
-  overflow-y: auto;
-  border-top: 1px solid rgba(214, 245, 200, 0.22);
-  color: rgba(244, 250, 239, 0.9);
-  font-size: 9px;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 18px;
+  border: 1px solid #e1e8dc;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(36, 54, 39, 0.08);
+  color: #25382d;
 }
 
-.nutrition-lookup__heading {
-  color: #c9ebb8;
-  font-size: 8px;
+.nutrition-lookup__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nutrition-lookup__eyebrow {
+  color: #52734f;
+  font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.8px;
 }
 
+.nutrition-lookup__title {
+  margin: 5px 0 0;
+  color: #1c3327;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.4px;
+  line-height: 1.25;
+}
+
 .nutrition-lookup__label {
-  color: rgba(244, 250, 239, 0.75);
-  font-size: 9px;
+  color: #57665b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nutrition-lookup__selection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .nutrition-lookup__select {
   width: 100%;
-  min-height: 34px;
-  padding: 5px 7px;
-  border: 1px solid rgba(201, 235, 184, 0.4);
-  border-radius: 6px;
-  background: rgba(12, 34, 24, 0.92);
-  color: white;
+  min-height: 44px;
+  padding: 8px 11px;
+  border: 1px solid #cbd7c8;
+  border-radius: 8px;
+  background: #fff;
+  color: #203329;
   font: inherit;
-  font-size: 10px;
+  font-size: 13px;
+}
+
+.nutrition-lookup__select:focus-visible {
+  outline: 3px solid #9abb82;
+  outline-offset: 2px;
+}
+
+.nutrition-lookup__source-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf4e9;
+  color: #355a3c;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .nutrition-lookup__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
+  gap: 8px;
 }
 
 .nutrition-lookup__value {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 2px;
-  padding: 5px 6px;
-  border-radius: 5px;
-  background: rgba(229, 255, 212, 0.08);
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid #e8ede5;
+  border-radius: 9px;
+  background: #f7f9f5;
 }
 
 .nutrition-lookup__value span {
-  color: rgba(244, 250, 239, 0.72);
-  font-size: 8px;
+  color: #637067;
+  font-size: 11px;
 }
 
 .nutrition-lookup__value strong {
-  color: #fff;
-  font-size: 10px;
+  color: #1d3929;
+  font-size: 15px;
   font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .nutrition-lookup__source {
   align-self: flex-start;
-  color: #caedb6;
-  font-size: 8px;
+  color: #326346;
+  font-size: 11px;
   line-height: 1.4;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -578,14 +618,14 @@ h1 {
 
 .nutrition-lookup__hint {
   margin: 0;
-  color: rgba(244, 250, 239, 0.78);
-  font-size: 9px;
+  color: #59675d;
+  font-size: 12px;
   line-height: 1.4;
 }
 
 .nutrition-lookup--error {
-  color: #ffe3d8;
-  font-size: 9px;
+  color: #8e3b2c;
+  font-size: 12px;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }

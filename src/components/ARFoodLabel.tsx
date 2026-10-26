@@ -3,7 +3,6 @@ import type {
   RecognitionResult,
   RecognitionStatus,
 } from '../types/recognition'
-import { NutritionLookup } from './NutritionLookup'
 
 type ARFoodLabelProps = {
   candidate: RecognitionResult | null
@@ -183,12 +182,6 @@ export function ARFoodLabel({
               Tekstlesing utilgjengelig
             </span>
           )}
-          {result.foodCategory && (
-            <NutritionLookup
-              key={result.foodCategory}
-              category={result.foodCategory}
-            />
-          )}
         </div>
       </div>
     )
@@ -238,12 +231,6 @@ export function ARFoodLabel({
             {isTextRecognition ? 'OCR-score' : 'Objektscore'}{' '}
             {(result.confidence * 100).toFixed(0)}%
           </span>
-        )}
-        {result.foodCategory && (
-          <NutritionLookup
-            key={result.foodCategory}
-            category={result.foodCategory}
-          />
         )}
         {textError && (
           <span className="ar-food-label__detail">

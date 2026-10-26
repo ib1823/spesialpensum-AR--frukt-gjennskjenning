@@ -7,11 +7,15 @@ import type { FoodCategory } from '../types/recognition'
 
 type NutritionLookupProps = {
   category: FoodCategory
+  detectedName: string
 }
 
 const DISPLAYED_NUTRIENTS = ['Protein', 'Karbo', 'Fett', 'Fiber']
 
-export function NutritionLookup({ category }: NutritionLookupProps) {
+export function NutritionLookup({
+  category,
+  detectedName,
+}: NutritionLookupProps) {
   const [foods, setFoods] = useState<MatvaretabellenFood[]>([])
   const [selectedFoodId, setSelectedFoodId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -76,25 +80,35 @@ export function NutritionLookup({ category }: NutritionLookupProps) {
 
   return (
     <section className="nutrition-lookup" aria-label="Næringsinnhold">
-      <span className="nutrition-lookup__heading">
-        NÆRINGSINNHOLD · PER 100 G
-      </span>
-      <label className="nutrition-lookup__label" htmlFor="nutrition-food">
-        Matvaretabellen-oppføring
-      </label>
-      <select
-        id="nutrition-food"
-        className="nutrition-lookup__select"
-        value={selectedFoodId}
-        onChange={(event) => setSelectedFoodId(event.target.value)}
-      >
-        <option value="">Velg riktig matvare...</option>
-        {foods.map((food) => (
-          <option key={food.id} value={food.id}>
-            {food.name}
-          </option>
-        ))}
-      </select>
+      <header className="nutrition-lookup__header">
+        <div>
+          <span className="nutrition-lookup__eyebrow">
+            MATVARETABELLEN · PER 100 G
+          </span>
+          <h2 className="nutrition-lookup__title">{detectedName}</h2>
+        </div>
+        <span className="nutrition-lookup__source-mark" aria-hidden="true">
+          100g
+        </span>
+      </header>
+      <div className="nutrition-lookup__selection">
+        <label className="nutrition-lookup__label" htmlFor="nutrition-food">
+          Velg matvareoppføring
+        </label>
+        <select
+          id="nutrition-food"
+          className="nutrition-lookup__select"
+          value={selectedFoodId}
+          onChange={(event) => setSelectedFoodId(event.target.value)}
+        >
+          <option value="">Velg riktig variant...</option>
+          {foods.map((food) => (
+            <option key={food.id} value={food.id}>
+              {food.name}
+            </option>
+          ))}
+        </select>
+      </div>
       {selectedFood ? (
         <>
           <div className="nutrition-lookup__grid">

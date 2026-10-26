@@ -1,5 +1,6 @@
 import { CameraControls } from './components/CameraControls'
 import { CameraView } from './components/CameraView'
+import { NutritionLookup } from './components/NutritionLookup'
 import { useFoodRecognition } from './hooks/useFoodRecognition'
 import { useCamera } from './hooks/useCamera'
 
@@ -52,6 +53,22 @@ function App() {
           isRunning={camera.isRunning}
           recognition={recognition}
         />
+        {camera.isRunning && recognition.result?.foodCategory && (
+          <NutritionLookup
+            key={recognition.result.foodCategory}
+            category={recognition.result.foodCategory}
+            detectedName={
+              recognition.result.label === 'monster-energy'
+                ? 'Monster Energy'
+                : recognition.result.recognizedText ??
+                  (recognition.result.label === 'banana'
+                    ? 'Banan'
+                    : recognition.result.label === 'apple'
+                      ? 'Eple'
+                      : 'Gjenkjent matvare')
+            }
+          />
+        )}
 
         <div className="camera-panel">
           <CameraControls
