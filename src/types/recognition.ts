@@ -1,4 +1,9 @@
-export type RecognitionLabel = 'banana' | 'apple' | 'unknown'
+export type RecognitionLabel =
+  | 'banana'
+  | 'apple'
+  | 'monster-energy'
+  | 'text'
+  | 'unknown'
 
 export type RecognitionBox = {
   xMin: number
@@ -11,6 +16,13 @@ export type RecognitionResult = {
   label: RecognitionLabel
   confidence: number | null
   box: RecognitionBox | null
+  recognizedText?: string
+  source?: 'object-detection' | 'text-recognition'
+}
+
+export type TextRecognitionResult = {
+  result: RecognitionResult | null
+  error?: string
 }
 
 export type RecognitionStatus = 'idle' | 'loading' | 'ready' | 'error'

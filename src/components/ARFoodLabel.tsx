@@ -8,6 +8,8 @@ type ARFoodLabelProps = {
   candidate: RecognitionResult | null
   error: string | null
   evaluating: boolean
+  textAnalyzing: boolean
+  textError: string | null
   position: {
     left: number
     top: number
@@ -17,16 +19,22 @@ type ARFoodLabelProps = {
   status: RecognitionStatus
 }
 
-const FOOD_NAMES = {
+const FOOD_NAMES: Record<
+  'banana' | 'apple' | 'monster-energy' | 'unknown',
+  string
+> = {
   banana: 'banan',
   apple: 'eple',
+  'monster-energy': 'Monster Energy',
   unknown: 'Ukjent matvare',
-} as const
+}
 
 export function ARFoodLabel({
   candidate,
   error,
   evaluating,
+  textAnalyzing,
+  textError,
   position,
   result,
   status,
@@ -49,6 +57,11 @@ export function ARFoodLabel({
         <div className="ar-food-label__panel">
           <span className="ar-food-label__eyebrow">MATHJELP SCANNER</span>
           <span className="ar-food-label__title">Laster AI-modell...</span>
+          {textError && (
+            <span className="ar-food-label__detail">
+              Tekstlesing utilgjengelig
+            </span>
+          )}
         </div>
       </div>
     )
@@ -61,6 +74,11 @@ export function ARFoodLabel({
           <span className="ar-food-label__eyebrow">MATHJELP SCANNER</span>
           <span className="ar-food-label__title">AI utilgjengelig</span>
           {error && <span className="ar-food-label__detail">{error}</span>}
+          {textError && (
+            <span className="ar-food-label__detail">
+              Tekstlesing utilgjengelig: {textError}
+            </span>
+          )}
         </div>
       </div>
     )
@@ -74,14 +92,23 @@ export function ARFoodLabel({
         style={labelStyle}
       >
         <div className="ar-food-label__panel" key="evaluating">
-          <span className="ar-food-label__eyebrow">ANALYSERER</span>
-          <span className="ar-food-label__title">Vurderer varen...</span>
+          <span className="ar-food-label__eyebrow">
+            {textAnalyzing ? 'LESER EMBALLASJEN' : 'ANALYSERER'}
+          </span>
+          <span className="ar-food-label__title">
+            {textAnalyzing ? 'Leser teksten...' : 'Vurderer varen...'}
+          </span>
           {candidate?.confidence !== null &&
             candidate?.confidence !== undefined && (
               <span className="ar-food-label__detail">
                 {(candidate.confidence * 100).toFixed(0)}% modellscore
               </span>
             )}
+          {textError && (
+            <span className="ar-food-label__detail">
+              Tekstlesing utilgjengelig
+            </span>
+          )}
         </div>
       </div>
     )
@@ -93,12 +120,48 @@ export function ARFoodLabel({
         <div className="ar-food-label__panel" key="searching">
           <span className="ar-food-label__eyebrow">SØKER</span>
           <span className="ar-food-label__title">Leter etter mat...</span>
+          {textError && (
+            <span className="ar-food-label__detail">
+              Tekstlesing utilgjengelig
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (result.label === 'text') {
+    return (
+      <div
+        className="ar-food-label"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="ar-food-label__panel" key={result.recognizedText}>
+          <span className="ar-food-label__eyebrow">TEKST LEST FRA BILDET</span>
+          <span className="ar-food-label__title">Tekst funnet</span>
+          {result.recognizedText && (
+            <span className="ar-food-label__recognized-text">
+              {result.recognizedText}
+            </span>
+          )}
+          {result.confidence !== null && (
+            <span className="ar-food-label__detail">
+              OCR-score {(result.confidence * 100).toFixed(0)}%
+            </span>
+          )}
+          {textError && (
+            <span className="ar-food-label__detail">
+              Tekstlesing feilet: {textError}
+            </span>
+          )}
         </div>
       </div>
     )
   }
 
   const isKnownFood = result.label !== 'unknown'
+  const isTextRecognition = result.source === 'text-recognition'
 
   return (
     <div
@@ -109,9 +172,15 @@ export function ARFoodLabel({
     >
       <div className="ar-food-label__panel" key={result.label}>
         <span className="ar-food-label__eyebrow">
-          {isKnownFood ? 'MATVARE GJENKJENT' : 'INGEN SIKKER MATCH'}
+          {result.label === 'monster-energy'
+            ? 'PRODUKTTEKST GJENKJENT'
+            : isKnownFood
+              ? 'MATVARE GJENKJENT'
+              : 'INGEN SIKKER MATCH'}
         </span>
-        {isKnownFood ? (
+        {result.label === 'monster-energy' ? (
+          <span className="ar-food-label__title">Monster Energy</span>
+        ) : isKnownFood ? (
           <>
             <span className="ar-food-label__intro">
               Dette er {result.label === 'banana' ? 'en' : 'et'}
@@ -125,9 +194,20 @@ export function ARFoodLabel({
             {FOOD_NAMES[result.label]}
           </span>
         )}
+        {result.recognizedText && result.label === 'monster-energy' && (
+          <span className="ar-food-label__recognized-text">
+            {result.recognizedText}
+          </span>
+        )}
         {result.confidence !== null && (
           <span className="ar-food-label__detail">
-            {(result.confidence * 100).toFixed(0)}% modellscore
+            {isTextRecognition ? 'OCR-score' : 'Objektscore'}{' '}
+            {(result.confidence * 100).toFixed(0)}%
+          </span>
+        )}
+        {textError && (
+          <span className="ar-food-label__detail">
+            Tekstlesing utilgjengelig
           </span>
         )}
       </div>

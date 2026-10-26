@@ -102,7 +102,12 @@ async function recognize(
       confidence >= MIN_RECOGNITION_CONFIDENCE &&
       (!bestDetection || confidence > (bestDetection.confidence ?? 0))
     ) {
-      bestDetection = { label: 'unknown', confidence, box }
+      bestDetection = {
+        label: 'unknown',
+        confidence,
+        box,
+        source: 'object-detection',
+      }
     }
 
     if (
@@ -110,7 +115,7 @@ async function recognize(
       confidence >= MIN_RECOGNITION_CONFIDENCE &&
       (!bestResult || confidence > (bestResult.confidence ?? 0))
     ) {
-      bestResult = { label, confidence, box }
+      bestResult = { label, confidence, box, source: 'object-detection' }
     }
   }
 
@@ -118,6 +123,7 @@ async function recognize(
     label: 'unknown',
     confidence: null,
     box: null,
+    source: 'object-detection',
   }
 }
 

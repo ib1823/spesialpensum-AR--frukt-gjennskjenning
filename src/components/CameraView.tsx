@@ -14,6 +14,8 @@ type CameraViewProps = {
     error: string | null
     result: RecognitionResult | null
     status: RecognitionStatus
+    textAnalyzing: boolean
+    textError: string | null
   }
 }
 
@@ -118,9 +120,10 @@ export function CameraView({
   const [overlayPosition, setOverlayPosition] =
     useState<OverlayPosition | null>(null)
   const evaluating =
-    Boolean(recognition.candidate) &&
-    (!recognition.result ||
-      recognition.candidate?.label !== recognition.result.label)
+    recognition.textAnalyzing ||
+    (Boolean(recognition.candidate) &&
+      (!recognition.result ||
+        recognition.candidate?.label !== recognition.result.label))
 
   useEffect(() => {
     const container = containerRef.current
@@ -237,6 +240,8 @@ export function CameraView({
             evaluating={evaluating}
             candidate={recognition.candidate}
             position={overlayPosition}
+            textAnalyzing={recognition.textAnalyzing}
+            textError={recognition.textError}
           />
         </>
       )}
