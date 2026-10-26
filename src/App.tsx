@@ -55,22 +55,25 @@ function App() {
           isRunning={camera.isRunning}
           recognition={recognition}
         />
-        {camera.isRunning && recognition.result?.foodCategory && (
-          <NutritionLookup
-            key={recognition.result.foodCategory}
-            category={recognition.result.foodCategory}
-            detectedName={
-              recognition.result.label === 'monster-energy'
-                ? 'Monster Energy'
-                : recognition.result.recognizedText ??
-                  (recognition.result.label === 'banana'
-                    ? 'Banan'
-                    : recognition.result.label === 'apple'
-                      ? 'Eple'
-                      : 'Gjenkjent matvare')
-            }
-          />
-        )}
+        {camera.isRunning &&
+          recognition.result?.foodCategory &&
+          recognition.result.foodCategory !== 'apple' &&
+          recognition.result.foodCategory !== 'banana' && (
+            <NutritionLookup
+              key={recognition.result.foodCategory}
+              category={recognition.result.foodCategory}
+              detectedName={
+                recognition.result.label === 'monster-energy'
+                  ? 'Monster Energy'
+                  : recognition.result.recognizedText ??
+                    (recognition.result.label === 'banana'
+                      ? 'Banan'
+                      : recognition.result.label === 'apple'
+                        ? 'Eple'
+                        : 'Gjenkjent matvare')
+              }
+            />
+          )}
 
         <div className="camera-panel">
           <CameraControls
