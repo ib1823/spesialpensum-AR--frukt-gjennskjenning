@@ -13,10 +13,11 @@ type ARFoodLabelProps = {
   position: {
     left: number
     top: number
-    placement: 'above' | 'below'
+    placement: 'above' | 'below' | 'left' | 'right'
   } | null
   result: RecognitionResult | null
   status: RecognitionStatus
+  trackingVisible: boolean
 }
 
 const FOOD_NAMES: Record<RecognitionResult['label'], string> = {
@@ -37,6 +38,7 @@ export function ARFoodLabel({
   position,
   result,
   status,
+  trackingVisible,
 }: ARFoodLabelProps) {
   const labelStyle: CSSProperties | undefined = position
     ? {
@@ -45,6 +47,19 @@ export function ARFoodLabel({
         bottom: 'auto',
       }
     : undefined
+  const isFruit =
+    !evaluating &&
+    result?.source === 'object-detection' &&
+    result.box !== null &&
+    (result.label === 'apple' || result.label === 'banana')
+  const labelClassName = [
+    'ar-food-label',
+    position ? `ar-food-label--${position.placement}` : '',
+    isFruit ? 'ar-food-label--hologram' : '',
+    !trackingVisible && result ? 'ar-food-label--fading' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   if (status === 'idle') {
     return null
@@ -86,7 +101,7 @@ export function ARFoodLabel({
   if (evaluating) {
     return (
       <div
-        className={`ar-food-label${position ? ` ar-food-label--${position.placement}` : ''}`}
+        className={labelClassName}
         role="status"
         style={labelStyle}
       >
@@ -162,7 +177,7 @@ export function ARFoodLabel({
   if (result.label === 'object') {
     return (
       <div
-        className={`ar-food-label${position ? ` ar-food-label--${position.placement}` : ''}`}
+        className={labelClassName}
         role="status"
         aria-live="polite"
         style={labelStyle}
@@ -192,7 +207,7 @@ export function ARFoodLabel({
 
   return (
     <div
-      className={`ar-food-label${position ? ` ar-food-label--${position.placement}` : ''}`}
+      className={labelClassName}
       role="status"
       aria-live="polite"
       style={labelStyle}
@@ -207,6 +222,10 @@ export function ARFoodLabel({
         </span>
         {result.label === 'monster-energy' ? (
           <span className="ar-food-label__title">Monster Energy</span>
+        ) : isFruit ? (
+          <span className="ar-food-label__title">
+            {FOOD_NAMES[result.label].toUpperCase()}
+          </span>
         ) : isKnownFood ? (
           <>
             <span className="ar-food-label__intro">
@@ -232,12 +251,57 @@ export function ARFoodLabel({
             {(result.confidence * 100).toFixed(0)}%
           </span>
         )}
+        {isFruit && (
+          <FruitNutritionExample
+            label={result.label === 'apple' ? 'apple' : 'banana'}
+          />
+        )}
         {textError && (
           <span className="ar-food-label__detail">
             Tekstlesing utilgjengelig
           </span>
         )}
       </div>
+    </div>
+  )
+}
+
+function FruitNutritionExample({
+  label,
+}: {
+  label: 'apple' | 'banana'
+}) {
+  const nutrients =
+    label === 'apple'
+      ? [
+          ['Kalorier', '52 kcal'],
+          ['Protein', '0,3 g'],
+          ['Karbohydrater', '13,8 g'],
+          ['Fett', '0,2 g'],
+        ]
+      : [
+          ['Kalorier', '89 kcal'],
+          ['Protein', '1,1 g'],
+          ['Karbohydrater', '22,8 g'],
+          ['Fett', '0,3 g'],
+        ]
+
+  return (
+    <div className="ar-food-label__nutrition">
+      <span className="ar-food-label__nutrition-heading">
+        EKSEMPELVERDIER · PER 100 G
+      </span>
+      <div className="ar-food-label__nutrition-grid">
+        {nutrients.map(([name, value]) => (
+          <span className="ar-food-label__nutrition-item" key={name}>
+            <span>{name}</span>
+            <strong>{value}</strong>
+          </span>
+        ))}
+      </div>
+      <span className="ar-food-label__nutrition-note">
+        Veiledende tall, ikke målt verdi for denne frukten.
+      </span>
     </div>
   )
 }

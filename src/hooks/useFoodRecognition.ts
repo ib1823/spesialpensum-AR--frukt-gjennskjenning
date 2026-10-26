@@ -6,7 +6,7 @@ import type {
   RecognitionStatus,
 } from '../types/recognition'
 
-const INFERENCE_INTERVAL_MS = 1000
+const INFERENCE_INTERVAL_MS = 400
 const REQUIRED_STABLE_PREDICTIONS = 2
 const TEXT_RECOGNITION_INTERVAL_MS = 3500
 
@@ -117,66 +117,10 @@ export function useFoodRecognition(
               candidateCount = 1
             }
 
-            setCandidate((previous) => {
-              if (
-                !previous ||
-                getPredictionKey(previous) !== predictionKey ||
-                !previous.box ||
-                !prediction.box
-              ) {
-                return prediction
-              }
-
-              const smoothing = 0.35
-              return {
-                ...prediction,
-                box: {
-                  xMin:
-                    previous.box.xMin * (1 - smoothing) +
-                    prediction.box.xMin * smoothing,
-                  yMin:
-                    previous.box.yMin * (1 - smoothing) +
-                    prediction.box.yMin * smoothing,
-                  xMax:
-                    previous.box.xMax * (1 - smoothing) +
-                    prediction.box.xMax * smoothing,
-                  yMax:
-                    previous.box.yMax * (1 - smoothing) +
-                    prediction.box.yMax * smoothing,
-                },
-              }
-            })
+            setCandidate(prediction)
 
             if (candidateCount >= REQUIRED_STABLE_PREDICTIONS) {
-              setResult((previous) => {
-                if (
-                  !previous ||
-                  getPredictionKey(previous) !== predictionKey ||
-                  !previous.box ||
-                  !prediction.box
-                ) {
-                  return prediction
-                }
-
-                const smoothing = 0.35
-                return {
-                  ...prediction,
-                  box: {
-                    xMin:
-                      previous.box.xMin * (1 - smoothing) +
-                      prediction.box.xMin * smoothing,
-                    yMin:
-                      previous.box.yMin * (1 - smoothing) +
-                      prediction.box.yMin * smoothing,
-                    xMax:
-                      previous.box.xMax * (1 - smoothing) +
-                      prediction.box.xMax * smoothing,
-                    yMax:
-                      previous.box.yMax * (1 - smoothing) +
-                      prediction.box.yMax * smoothing,
-                  },
-                }
-              })
+              setResult(prediction)
             }
           } else {
             candidateLabel = null

@@ -22,7 +22,7 @@ type CameraViewProps = {
 type OverlayPosition = {
   left: number
   top: number
-  placement: 'above' | 'below'
+  placement: 'above' | 'below' | 'left' | 'right'
   bounds: {
     left: number
     top: number
@@ -47,6 +47,9 @@ function getOverlayPosition(
 
   const containerRect = container.getBoundingClientRect()
   const videoRect = video.getBoundingClientRect()
+  if (!containerRect.width || !containerRect.height) {
+    return null
+  }
   const scale = Math.max(
     videoRect.width / video.videoWidth,
     videoRect.height / video.videoHeight,
@@ -89,19 +92,64 @@ function getOverlayPosition(
     return null
   }
 
-  const placeAbove = boundsTop > 32
-  const labelY = placeAbove ? boundsTop : boundsBottom
-  const labelWidthPercent =
-    (Math.min(280, containerRect.width - 24) / containerRect.width) * 100
+  const labelWidth = Math.min(224, containerRect.width - 24)
+  const labelHeight = Math.min(210, containerRect.height * 0.5)
+  const gap = 14
+  const spaces = {
+    right: containerRect.width * (1 - boundsRight),
+    left: containerRect.width * boundsLeft,
+    above: containerRect.height * boundsTop,
+    below: containerRect.height * (1 - boundsBottom),
+  }
+  const fittingPlacement = (
+    ['right', 'left', 'above', 'below'] as const
+  ).find((placement) => {
+    const required =
+      placement === 'right' || placement === 'left'
+        ? labelWidth + gap
+        : labelHeight + gap
+    return spaces[placement] >= required
+  })
+  const placement =
+    fittingPlacement ??
+    (Object.entries(spaces).sort((first, second) => second[1] - first[1])[0][0] as
+      | 'above'
+      | 'below'
+      | 'left'
+      | 'right')
+  const labelWidthPercent = (labelWidth / containerRect.width) * 100
+  const labelHeightPercent = (labelHeight / containerRect.height) * 100
+  const centerX = (boundsLeft + boundsRight) / 2
+  const centerY = (boundsTop + boundsBottom) / 2
+  const labelLeft =
+    placement === 'right'
+      ? clamp(boundsRight, 8 / containerRect.width, 100 - labelWidthPercent)
+      : placement === 'left'
+        ? clamp(boundsLeft, labelWidthPercent, 100 - 8 / containerRect.width)
+        : clamp(centerX, labelWidthPercent / 2, 100 - labelWidthPercent / 2)
+  const labelTop =
+    placement === 'above'
+      ? clamp(
+          boundsTop,
+          labelHeightPercent + 2,
+          100 - 8 / containerRect.height,
+        )
+      : placement === 'below'
+        ? clamp(
+            boundsBottom,
+            8 / containerRect.height,
+            98 - labelHeightPercent,
+          )
+        : clamp(
+            centerY,
+            labelHeightPercent / 2,
+            100 - labelHeightPercent / 2,
+          )
 
   return {
-    left: clamp(
-      (boundsLeft + boundsRight) / 2,
-      labelWidthPercent / 2,
-      100 - labelWidthPercent / 2,
-    ),
-    top: clamp(labelY, 6, 72),
-    placement: placeAbove ? 'above' : 'below',
+    left: labelLeft,
+    top: labelTop,
+    placement,
     bounds: {
       left: boundsLeft,
       top: boundsTop,
@@ -119,6 +167,9 @@ export function CameraView({
   const containerRef = useRef<HTMLDivElement>(null)
   const [overlayPosition, setOverlayPosition] =
     useState<OverlayPosition | null>(null)
+  const [trackedResult, setTrackedResult] =
+    useState<RecognitionResult | null>(null)
+  const [trackingVisible, setTrackingVisible] = useState(true)
   const evaluating =
     recognition.textAnalyzing ||
     (Boolean(recognition.candidate) &&
@@ -126,43 +177,138 @@ export function CameraView({
         recognition.candidate?.label !== recognition.result.label ||
         recognition.candidate?.recognizedText !==
           recognition.result.recognizedText))
+  const detection =
+    evaluating && recognition.candidate?.box
+      ? recognition.candidate
+      : recognition.result?.box
+        ? recognition.result
+        : recognition.candidate
+  const detectionRef = useRef<RecognitionResult | null>(detection)
+  detectionRef.current = detection
 
   useEffect(() => {
     const container = containerRef.current
     const video = videoRef.current
     if (!container || !video || !isRunning) {
       setOverlayPosition(null)
+      setTrackedResult(null)
+      setTrackingVisible(true)
       return
     }
 
-    const updatePosition = () => {
-      setOverlayPosition(
-        getOverlayPosition(
+    let animationFrame = 0
+    let lastFrameAt = 0
+    let lastPublishedAt = 0
+    let lastDetectionAt = 0
+    let currentPosition: OverlayPosition | null = null
+    let currentResult: RecognitionResult | null = null
+    let visible = true
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches
+
+    const animate = (timestamp: number) => {
+      const delta = lastFrameAt ? timestamp - lastFrameAt : 16
+      lastFrameAt = timestamp
+      const targetResult = detectionRef.current
+      const markTrackMissing = () => {
+        if (!currentResult) {
+          return
+        }
+        if (visible) {
+          visible = false
+          setTrackingVisible(false)
+        }
+        if (timestamp - lastDetectionAt > 260) {
+          currentPosition = null
+          currentResult = null
+          setTrackedResult(null)
+        }
+      }
+
+      if (targetResult?.box) {
+        const targetPosition = getOverlayPosition(container, video, targetResult)
+        if (targetPosition) {
+          const sameTrack =
+            currentResult?.label === targetResult.label &&
+            currentResult?.recognizedText === targetResult.recognizedText
+          const smoothing = reduceMotion ? 1 : 1 - Math.exp(-delta / 110)
+          currentPosition =
+            !sameTrack || !currentPosition
+              ? targetPosition
+              : {
+                  ...targetPosition,
+                  left:
+                    currentPosition.left +
+                    (targetPosition.left - currentPosition.left) * smoothing,
+                  top:
+                    currentPosition.top +
+                    (targetPosition.top - currentPosition.top) * smoothing,
+                  bounds: {
+                    left:
+                      currentPosition.bounds.left +
+                      (targetPosition.bounds.left -
+                        currentPosition.bounds.left) *
+                        smoothing,
+                    top:
+                      currentPosition.bounds.top +
+                      (targetPosition.bounds.top -
+                        currentPosition.bounds.top) *
+                        smoothing,
+                    width:
+                      currentPosition.bounds.width +
+                      (targetPosition.bounds.width -
+                        currentPosition.bounds.width) *
+                        smoothing,
+                    height:
+                      currentPosition.bounds.height +
+                      (targetPosition.bounds.height -
+                        currentPosition.bounds.height) *
+                        smoothing,
+                  },
+                }
+          currentResult = targetResult
+          lastDetectionAt = timestamp
+          if (!visible) {
+            visible = true
+            setTrackingVisible(true)
+          }
+          setTrackedResult((previous) =>
+            previous === targetResult ? previous : targetResult,
+          )
+        } else {
+          markTrackMissing()
+        }
+      } else {
+        markTrackMissing()
+      }
+
+      if (timestamp - lastPublishedAt >= 32) {
+        lastPublishedAt = timestamp
+        setOverlayPosition(currentPosition)
+      }
+      animationFrame = window.requestAnimationFrame(animate)
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (currentResult) {
+        currentPosition = getOverlayPosition(
           container,
           video,
-          evaluating ? recognition.candidate : recognition.result,
-        ),
-      )
-    }
-
-    const resizeObserver = new ResizeObserver(updatePosition)
+          detectionRef.current ?? currentResult,
+        )
+      }
+    })
     resizeObserver.observe(container)
-    video.addEventListener('loadedmetadata', updatePosition)
-    window.addEventListener('resize', updatePosition)
-    updatePosition()
+    animationFrame = window.requestAnimationFrame(animate)
 
     return () => {
+      window.cancelAnimationFrame(animationFrame)
       resizeObserver.disconnect()
-      video.removeEventListener('loadedmetadata', updatePosition)
-      window.removeEventListener('resize', updatePosition)
     }
-  }, [
-    evaluating,
-    isRunning,
-    recognition.candidate,
-    recognition.result,
-    videoRef,
-  ])
+  }, [isRunning, videoRef])
+
+  const displayedResult = trackedResult ?? recognition.result
 
   return (
     <div
@@ -209,7 +355,7 @@ export function CameraView({
           {recognition.status !== 'error' && (
             <ARScanEffect
               box={
-                overlayPosition?.bounds
+                trackingVisible && overlayPosition?.bounds
                   ? {
                       xMin: overlayPosition.bounds.left / 100,
                       yMin: overlayPosition.bounds.top / 100,
@@ -225,11 +371,13 @@ export function CameraView({
                   : null
               }
               state={
-                evaluating
+                !trackingVisible && trackedResult
+                  ? 'searching'
+                  : evaluating
                   ? 'analyzing'
-                  : recognition.result?.label === 'unknown'
+                  : displayedResult?.label === 'unknown'
                     ? 'unknown'
-                    : recognition.result
+                    : displayedResult
                       ? 'recognized'
                       : 'searching'
               }
@@ -237,13 +385,14 @@ export function CameraView({
           )}
           <ARFoodLabel
             error={recognition.error}
-            result={recognition.result}
+            result={displayedResult}
             status={recognition.status}
             evaluating={evaluating}
             candidate={recognition.candidate}
             position={overlayPosition}
             textAnalyzing={recognition.textAnalyzing}
             textError={recognition.textError}
+            trackingVisible={trackingVisible}
           />
         </>
       )}

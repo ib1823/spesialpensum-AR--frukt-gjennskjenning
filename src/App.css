@@ -247,10 +247,10 @@ h1 {
   pointer-events: none;
   border-radius: 15px;
   transition:
-    left 260ms ease-out,
-    top 260ms ease-out,
-    width 260ms ease-out,
-    height 260ms ease-out;
+    left 80ms linear,
+    top 80ms linear,
+    width 80ms linear,
+    height 80ms linear;
 }
 
 .ar-scan-target--guide {
@@ -422,9 +422,9 @@ h1 {
   transform: translate(-50%, -100%);
   perspective: 900px;
   transition:
-    left 320ms ease-out,
-    top 320ms ease-out,
-    bottom 320ms ease-out;
+    left 70ms linear,
+    top 70ms linear,
+    opacity 220ms ease;
 }
 
 .ar-food-label__panel {
@@ -746,7 +746,7 @@ h1 {
 }
 
 .app-shell--camera-active .ar-food-label {
-  z-index: 12;
+  z-index: 16;
 }
 
 .app-shell--camera-active .ar-scan-target {
@@ -797,6 +797,191 @@ h1 {
 
 .ar-food-label--below .ar-food-label__panel {
   animation-name: recognition-float-in-below;
+}
+
+.camera-view--active .ar-scan-target--detected {
+  transition: none;
+}
+
+.camera-view--active .ar-food-label {
+  transition: opacity 220ms ease;
+}
+
+.ar-food-label--above {
+  transform: translate(-50%, -100%);
+}
+
+.ar-food-label--below {
+  transform: translate(-50%, 0);
+}
+
+.ar-food-label--left {
+  transform: translate(-100%, -50%);
+}
+
+.ar-food-label--right {
+  transform: translate(0, -50%);
+}
+
+.ar-food-label--hologram {
+  z-index: 4;
+  max-width: min(224px, calc(100% - 24px));
+  perspective: 700px;
+  pointer-events: none;
+}
+
+.ar-food-label--hologram::before {
+  position: absolute;
+  z-index: 0;
+  content: '';
+  opacity: 0.92;
+  filter: drop-shadow(0 0 5px rgba(96, 224, 255, 0.8));
+}
+
+.ar-food-label--hologram.ar-food-label--above::before {
+  top: 100%;
+  left: 50%;
+  height: 14px;
+  border-left: 1px solid rgba(114, 231, 255, 0.9);
+}
+
+.ar-food-label--hologram.ar-food-label--below::before {
+  bottom: 100%;
+  left: 50%;
+  height: 14px;
+  border-left: 1px solid rgba(114, 231, 255, 0.9);
+}
+
+.ar-food-label--hologram.ar-food-label--left::before {
+  top: 50%;
+  left: 100%;
+  width: 14px;
+  border-top: 1px solid rgba(114, 231, 255, 0.9);
+}
+
+.ar-food-label--hologram.ar-food-label--right::before {
+  top: 50%;
+  right: 100%;
+  width: 14px;
+  border-top: 1px solid rgba(114, 231, 255, 0.9);
+}
+
+.ar-food-label--hologram .ar-food-label__panel {
+  z-index: 1;
+  width: min(224px, calc(100vw - 32px));
+  min-width: 0;
+  gap: 6px;
+  padding: 12px;
+  transform: translateZ(12px);
+  transform-origin: center;
+  animation: hologram-float-in 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  border: 1px solid rgba(99, 218, 255, 0.68);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(13, 42, 62, 0.84), rgba(8, 22, 39, 0.78));
+  box-shadow:
+    0 9px 28px rgba(1, 8, 18, 0.38),
+    0 0 22px rgba(56, 193, 255, 0.22),
+    inset 0 1px 0 rgba(216, 250, 255, 0.19);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.ar-food-label--hologram .ar-food-label__panel::before {
+  background: #7ceaff;
+  box-shadow: 0 0 10px rgba(124, 234, 255, 0.95);
+}
+
+.ar-food-label--hologram .ar-food-label__eyebrow {
+  color: #9aefff;
+}
+
+.ar-food-label--hologram .ar-food-label__title {
+  font-size: clamp(16px, 4vw, 19px);
+  letter-spacing: 0.8px;
+}
+
+.ar-food-label__nutrition {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.ar-food-label__nutrition-heading {
+  color: rgba(167, 235, 255, 0.9);
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.65px;
+}
+
+.ar-food-label__nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.ar-food-label__nutrition-item {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 5px 6px;
+  border: 1px solid rgba(153, 222, 243, 0.17);
+  border-radius: 6px;
+  background: rgba(144, 218, 244, 0.07);
+}
+
+.ar-food-label__nutrition-item span {
+  color: rgba(229, 247, 255, 0.8);
+  font-size: 8px;
+}
+
+.ar-food-label__nutrition-item strong {
+  color: #f2fcff;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ar-food-label__nutrition-note {
+  color: rgba(207, 232, 242, 0.76);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.ar-food-label--fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes hologram-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px) translateZ(0) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(12px) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ar-food-label,
+  .ar-scan-target {
+    transition-duration: 0.01ms;
+  }
+
+  .ar-food-label__panel,
+  .ar-scan-target__corner,
+  .ar-scan-target__scanline,
+  .ar-scan-target__particles i {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
 }
 
 @keyframes recognition-float-in-below {
