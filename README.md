@@ -47,6 +47,19 @@ When the detector identifies a COCO food category or OCR reads the Monster brand
 
 To change the object detector confidence threshold, edit `MIN_RECOGNITION_CONFIDENCE` in `src/workers/recognition.worker.ts`. The detector processes one frame at a time, waiting 400 ms between completed inferences; OCR runs less often while the detected object is not an apple or banana.
 
+## Spatial AR on iPhone
+
+The current web build cannot provide the requested world tracking in iPhone Safari. Safari on iOS does not support the WebXR Device API, the browser API for immersive AR sessions, hit testing, and WebXR anchors ([Can I use: WebXR](https://caniuse.com/webxr), [WebKit implementation issue](https://bugs.webkit.org/show_bug.cgi?id=208988)). `getUserMedia` provides camera video, not camera pose, depth, world tracking, or spatial anchors. The existing React labels therefore remain 2D overlays that follow image-space detections; storing a detection box would not make one spatial.
+
+The smallest practical change is an iOS app shell (for example, Capacitor) around this React app plus a custom Swift ARKit integration. Keep the existing web scanner available, and add a native AR experience in which:
+
+1. ARKit owns the camera session and renders the live camera view. The existing `getUserMedia` stream cannot be treated as an ARKit session or source of world coordinates.
+2. The existing apple/banana model receives frames from that AR session through a native-to-web bridge (or a separately validated native inference adapter). It returns the recognized class and image-space box only; that box is not saved as placement.
+3. After the user selects a detection, the native side maps a point beside its box into the AR view, performs an ARKit raycast, and creates a named `ARAnchor` at the resulting world transform. A RealityKit entity attached to that anchor displays the tappable hologram. The JS bridge sends recognition and nutrition data to the native view and reports anchor/tap events back to React.
+4. The nutrition panel can be shown or hidden independently of the anchor. Surface `ARSession` tracking state in the UI, retain the anchor through temporary interruptions, and let ARKit relocalize when possible. If anchors must survive ending/restarting the AR session, save and restore an `ARWorldMap` and handle relocalization explicitly; retaining an anchor object in memory alone does not provide this.
+
+ARKit's `ARWorldTrackingConfiguration` provides six-degree-of-freedom tracking and ray casting, and `ARAnchor` stores a transform in the AR session's world coordinate space ([world tracking](https://developer.apple.com/documentation/arkit/arworldtrackingconfiguration), [anchors](https://developer.apple.com/documentation/arkit/aranchor)). This requires a native iOS target and on-device testing; it cannot be enabled by a Vercel deployment or by adding a CSS/Three.js overlay to the current Safari camera preview. No native AR implementation is included in this repository.
+
 ## Test on iPhone
 
 The production build can be validated with `npm run build`. To test actual predictions, deploy the app over HTTPS, open it in Safari on a physical iPhone, start the camera, and point it at one banana or apple at a time with the item centered and well lit. For OCR, show a Monster can close enough for the brand text to be sharp, well lit, and facing the camera; the first OCR use also needs an internet connection to load its engine and English data. Verify that it reads the visible package text and displays `Monster Energy` only when it reads `Monster`. Browser and desktop builds do not substitute for a physical iPhone Safari test.
