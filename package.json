@@ -1,5 +1,5 @@
 {
-  "name": "mathjelp-webar",
+  "name": "mathjelp",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,10 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "onnxruntime-web": "^1.30.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tesseract.js": "^7.0.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
